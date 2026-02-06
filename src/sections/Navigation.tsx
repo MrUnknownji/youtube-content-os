@@ -23,6 +23,7 @@ import {
 import { useProjectStore } from '@/state/projectStore';
 import { PinnedItemsSidebar } from '@/sections/PinnedItemsSidebar';
 import { SettingsDialog, AIModeToggle } from '@/components/SettingsDialog';
+import { ThemeToggle } from '@/components/theme-toggle';
 import type { WorkflowStage } from '@/types';
 
 interface NavigationProps {
@@ -161,10 +162,13 @@ export function Navigation({ currentStage, onStageChange }: NavigationProps) {
 
         {/* AI Mode Toggle & Service Status */}
         <div className="p-4 border-t border-sidebar-border space-y-3">
-          {/* AI Mode Toggle */}
+          {/* AI Mode Toggle & Theme */}
           <div className="flex items-center justify-between">
             <AIModeToggle />
-            <SettingsDialog />
+            <div className="flex items-center gap-1">
+              <ThemeToggle />
+              <SettingsDialog />
+            </div>
           </div>
           
           {/* Service Status */}
@@ -237,13 +241,16 @@ export function Navigation({ currentStage, onStageChange }: NavigationProps) {
         {/* Mobile Menu */}
         {isMobileMenuOpen && (
           <div className="border-t border-border bg-background p-4">
-            <Button
-              onClick={createNewProject}
-              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground mb-4"
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              New Project
-            </Button>
+            <div className="flex items-center justify-between mb-4">
+               <Button
+                onClick={createNewProject}
+                className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground mr-2"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                New Project
+              </Button>
+              <ThemeToggle />
+            </div>
             <nav className="space-y-1">
               {STAGES.map((stage) => {
                 const Icon = stage.icon;

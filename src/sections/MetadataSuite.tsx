@@ -21,7 +21,8 @@ import {
   CheckCheck,
   Download,
   Wand2,
-  Tag
+  Tag,
+  FileCheck
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useProjectStore } from '@/state/projectStore';
@@ -303,6 +304,60 @@ High quality, eye-catching, professional.`;
     
     finalizeMetadata(metadata);
     toast.success('Metadata finalized!');
+    setActiveTab('done');
+  };
+
+  const exportDocument = () => {
+    if (!currentProject) return;
+
+    const finalTitle = currentProject.selectedMetadata?.title || selectedTitle || customTitle || 'Untitled Project';
+    const finalDescription = currentProject.selectedMetadata?.description || description;
+    const finalTags = currentProject.selectedMetadata?.tags || tags;
+
+    // Construct the markdown/text content
+    let content = `# ${finalTitle}\n\n`;
+    content += `## Description\n${finalDescription}\n\n`;
+
+    if (finalTags.length > 0) {
+      content += `## Tags\n${finalTags.map(t => `#${t}`).join(' ')}\n\n`;
+    }
+
+    const thumbConcept = currentProject.selectedMetadata?.thumbnailConcept
+      ? {
+          title: currentProject.selectedMetadata.thumbnailConcept,
+          description: currentProject.selectedMetadata.thumbnailPrompt,
+          layout: currentProject.selectedMetadata.thumbnailLayout,
+          textOverlay: '',
+          colorScheme: ''
+        }
+      : thumbnailConcepts.find(c => c.id === selectedThumbnail);
+
+    if (thumbConcept) {
+      content += `## Thumbnail Concept\n`;
+      content += `**Title:** ${thumbConcept.title}\n`;
+      content += `**Description:** ${thumbConcept.description}\n`;
+      if (thumbConcept.layout) content += `**Layout:** ${thumbConcept.layout}\n`;
+      if (thumbConcept.textOverlay) content += `**Text Overlay:** ${thumbConcept.textOverlay}\n`;
+      if (thumbConcept.colorScheme) content += `**Color Scheme:** ${thumbConcept.colorScheme}\n\n`;
+    }
+
+    if (currentProject.selectedTopic) {
+        content += `## Topic\n${currentProject.selectedTopic.title}\n\n`;
+    }
+
+    if (currentProject.selectedScript) {
+        content += `## Script\n${currentProject.selectedScript.content}\n\n`;
+    }
+
+    // Create download
+    const blob = new Blob([content], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${(finalTitle || 'project').replace(/[^a-z0-9]/gi, '_').toLowerCase()}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success('Document exported');
   };
 
   const exportProject = () => {
@@ -344,7 +399,7 @@ High quality, eye-catching, professional.`;
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3 bg-muted">
+        <TabsList className="grid w-full grid-cols-4 bg-muted">
           <TabsTrigger value="titles" className="data-[state=active]:bg-background gap-1">
             <Type className="h-4 w-4" />
             Titles
@@ -356,6 +411,10 @@ High quality, eye-catching, professional.`;
           <TabsTrigger value="thumbnail" className="data-[state=active]:bg-background gap-1">
             <ImageIcon className="h-4 w-4" />
             Thumbnail
+          </TabsTrigger>
+          <TabsTrigger value="done" disabled={currentStage !== 'complete'} className="data-[state=active]:bg-background gap-1">
+            <FileCheck className="h-4 w-4" />
+            Done
           </TabsTrigger>
         </TabsList>
 
@@ -600,6 +659,65 @@ High quality, eye-catching, professional.`;
             <Check className="mr-2 h-5 w-5" />
             Complete Project
           </Button>
+        </TabsContent>
+
+        {/* Done Tab */}
+        <TabsContent value="done" className="mt-6 space-y-4">
+          <Card className="border-primary/20 bg-primary/5">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
+                  <Check className="h-6 w-6" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold font-sans">Project Complete!</h3>
+                  <p className="text-muted-foreground">Your video content package is ready.</p>
+                </div>
+              </div>
+
+              <div className="space-y-4 mb-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">Title</Label>
+                    <p className="font-medium font-sans">
+                      {currentProject.selectedMetadata?.title || selectedTitle || customTitle}
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">Topic</Label>
+                    <p className="font-medium">{currentProject?.selectedTopic?.title}</p>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-muted-foreground">Thumbnail Concept</Label>
+                  <p className="font-medium">
+                    {currentProject.selectedMetadata?.thumbnailConcept || thumbnailConcepts.find(c => c.id === selectedThumbnail)?.title}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <Button
+                  onClick={exportDocument}
+                  className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground"
+                  size="lg"
+                >
+                  <Download className="mr-2 h-5 w-5" />
+                  Export Selected Choices
+                </Button>
+                <Button
+                  onClick={exportProject}
+                  variant="outline"
+                  className="flex-1 border-primary/20 hover:bg-primary/10"
+                  size="lg"
+                >
+                  <FileText className="mr-2 h-5 w-5" />
+                  Export Full JSON
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>
