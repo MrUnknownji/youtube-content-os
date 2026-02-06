@@ -680,7 +680,7 @@ High quality, eye-catching, professional.`;
                   <div className="space-y-2">
                     <Label className="text-muted-foreground">Title</Label>
                     <p className="font-medium font-sans">
-                      {currentProject.selectedMetadata?.title || selectedTitle || customTitle}
+                      {currentProject?.selectedMetadata?.title || selectedTitle || customTitle}
                     </p>
                   </div>
                   <div className="space-y-2">
@@ -692,7 +692,7 @@ High quality, eye-catching, professional.`;
                 <div className="space-y-2">
                   <Label className="text-muted-foreground">Thumbnail Concept</Label>
                   <p className="font-medium">
-                    {currentProject.selectedMetadata?.thumbnailConcept || thumbnailConcepts.find(c => c.id === selectedThumbnail)?.title}
+                    {currentProject?.selectedMetadata?.thumbnailConcept || thumbnailConcepts.find(c => c.id === selectedThumbnail)?.title}
                   </p>
                 </div>
               </div>
