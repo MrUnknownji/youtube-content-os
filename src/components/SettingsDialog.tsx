@@ -13,9 +13,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Settings, Eye, EyeOff, Sparkles, Zap, Trash2, AlertTriangle } from 'lucide-react';
+import { Settings, Eye, EyeOff, Sparkles, Zap } from 'lucide-react';
 import { toast } from 'sonner';
-import { useProjectStore } from '@/state/projectStore';
 
 interface AISettings {
   useAI: boolean;
@@ -59,7 +58,6 @@ export function SettingsDialog() {
   const [open, setOpen] = useState(false);
   const [settings, setSettings] = useState<AISettings>(getAISettings());
   const [showKey, setShowKey] = useState(false);
-  const { createNewProject, setPinnedItems } = useProjectStore();
 
   useEffect(() => {
     if (open) {
@@ -79,15 +77,6 @@ export function SettingsDialog() {
     setSettings(prev => ({ ...prev, useAI: checked }));
   };
 
-  const handleReset = () => {
-    if (window.confirm('Are you sure you want to reset the application? This will delete the current project and all pinned items.')) {
-      createNewProject();
-      setPinnedItems([]);
-      toast.success('Application reset successfully');
-      setOpen(false);
-    }
-  };
-
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -100,14 +89,14 @@ export function SettingsDialog() {
           <Settings className="h-4 w-4" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[450px] bg-background border-border max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[450px] bg-background border-border">
         <DialogHeader>
           <DialogTitle className="font-sans text-foreground flex items-center gap-2">
             <Settings className="h-5 w-5" />
-            Settings
+            AI Settings
           </DialogTitle>
           <DialogDescription className="text-muted-foreground">
-            Configure AI providers and application preferences.
+            Toggle between template mode and AI-powered generation.
           </DialogDescription>
         </DialogHeader>
 
@@ -181,27 +170,6 @@ export function SettingsDialog() {
                 ? 'All generation (topics, scripts, storyboards, metadata) will use Google Gemini 3 Flash for intelligent, context-aware content.'
                 : 'Uses pre-built templates for quick content generation. Great for testing or when API is unavailable.'}
             </p>
-          </div>
-
-          {/* Danger Zone */}
-          <div className="border border-destructive/20 rounded-lg overflow-hidden">
-            <div className="bg-destructive/10 px-4 py-2 border-b border-destructive/20 flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-destructive" />
-              <span className="text-sm font-medium text-destructive">Danger Zone</span>
-            </div>
-            <div className="p-4 bg-background">
-              <p className="text-sm text-muted-foreground mb-3">
-                Reset the application to its initial state. This will delete the current project and all pinned items.
-              </p>
-              <Button
-                variant="destructive"
-                onClick={handleReset}
-                className="w-full"
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                Reset Application
-              </Button>
-            </div>
           </div>
         </div>
 

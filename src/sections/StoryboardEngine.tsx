@@ -548,7 +548,6 @@ Return as valid JSON array. Ensure total duration matches script.`;
       {/* Finalize Button */}
       <Button
         onClick={handleFinalizeStoryboard}
-        disabled={localIsGenerating}
         className="w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-full py-6"
       >
         <Check className="mr-2 h-5 w-5" />

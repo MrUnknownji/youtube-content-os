@@ -23,7 +23,6 @@ import {
 import { useProjectStore } from '@/state/projectStore';
 import { PinnedItemsSidebar } from '@/sections/PinnedItemsSidebar';
 import { SettingsDialog, AIModeToggle } from '@/components/SettingsDialog';
-import { ThemeToggle } from '@/components/theme-toggle';
 import type { WorkflowStage } from '@/types';
 
 interface NavigationProps {
@@ -48,7 +47,7 @@ const STATUS_COLORS = {
 };
 
 export function Navigation({ currentStage, onStageChange }: NavigationProps) {
-  const { currentProject, pinnedItems, serviceStatus, isGenerating, createNewProject: storeCreateNewProject } = useProjectStore();
+  const { currentProject, pinnedItems, serviceStatus, createNewProject: storeCreateNewProject } = useProjectStore();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showPinnedSidebar, setShowPinnedSidebar] = useState(false);
 
@@ -68,7 +67,6 @@ export function Navigation({ currentStage, onStageChange }: NavigationProps) {
   };
 
   const handleStageClick = (stageId: WorkflowStage) => {
-    if (isGenerating) return;
     const status = getStageStatus(stageId);
     if (status === 'locked') {
       return;
@@ -124,7 +122,7 @@ export function Navigation({ currentStage, onStageChange }: NavigationProps) {
                 <button
                   key={stage.id}
                   onClick={() => handleStageClick(stage.id)}
-                  disabled={status === 'locked' || isGenerating}
+                  disabled={status === 'locked'}
                   className={`
                     w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium
                     transition-colors duration-200
@@ -163,13 +161,10 @@ export function Navigation({ currentStage, onStageChange }: NavigationProps) {
 
         {/* AI Mode Toggle & Service Status */}
         <div className="p-4 border-t border-sidebar-border space-y-3">
-          {/* AI Mode Toggle & Theme */}
+          {/* AI Mode Toggle */}
           <div className="flex items-center justify-between">
             <AIModeToggle />
-            <div className="flex items-center gap-1">
-              <ThemeToggle />
-              <SettingsDialog />
-            </div>
+            <SettingsDialog />
           </div>
           
           {/* Service Status */}
@@ -196,8 +191,8 @@ export function Navigation({ currentStage, onStageChange }: NavigationProps) {
         <div className="p-4 border-t border-sidebar-border">
           <Button 
             variant="ghost" 
-            className="w-full flex items-center justify-start gap-2 text-sm text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors px-2"
-            onClick={() => setShowPinnedSidebar(prev => !prev)}
+            className="w-full flex items-center justify-start gap-2 text-sm text-sidebar-foreground hover:text-sidebar-primary transition-colors px-2"
+            onClick={() => setShowPinnedSidebar(true)}
           >
             <Bookmark className="h-4 w-4" />
             <span>Pinned Items</span>
@@ -242,16 +237,13 @@ export function Navigation({ currentStage, onStageChange }: NavigationProps) {
         {/* Mobile Menu */}
         {isMobileMenuOpen && (
           <div className="border-t border-border bg-background p-4">
-            <div className="flex items-center justify-between mb-4">
-               <Button
-                onClick={createNewProject}
-                className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground mr-2"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                New Project
-              </Button>
-              <ThemeToggle />
-            </div>
+            <Button
+              onClick={createNewProject}
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground mb-4"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              New Project
+            </Button>
             <nav className="space-y-1">
               {STAGES.map((stage) => {
                 const Icon = stage.icon;
@@ -261,7 +253,7 @@ export function Navigation({ currentStage, onStageChange }: NavigationProps) {
                   <button
                     key={stage.id}
                     onClick={() => handleStageClick(stage.id)}
-                    disabled={status === 'locked' || isGenerating}
+                    disabled={status === 'locked'}
                     className={`
                       w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm
                       ${status === 'active' 

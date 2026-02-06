@@ -211,7 +211,6 @@ export function DataIngestion() {
               updateProject({ topicSuggestions: [] });
               setCurrentStage('topics');
             }}
-            disabled={localIsGenerating}
             className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-full"
           >
             Continue to Topics
