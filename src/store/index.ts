@@ -246,7 +246,8 @@ class AppStore {
   // Check service status
   private async checkServiceStatus() {
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+      const isProd = import.meta.env.PROD;
+      const apiUrl = import.meta.env.VITE_API_URL || (isProd ? '/api' : 'http://localhost:3001/api');
       const response = await fetch(`${apiUrl}/health`, {
         signal: AbortSignal.timeout(5000)
       });

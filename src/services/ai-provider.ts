@@ -126,7 +126,10 @@ class AIGateway {
           headers['x-gemini-api-key'] = currentSettings.geminiApiKey;
         }
 
-        const response = await fetch('http://localhost:3001/api/ai/generate', {
+        const isProd = import.meta.env.PROD;
+        const apiUrl = import.meta.env.VITE_API_URL || (isProd ? '/api' : 'http://localhost:3001/api');
+
+        const response = await fetch(`${apiUrl}/ai/generate`, {
           method: 'POST',
           headers,
           body: JSON.stringify({
