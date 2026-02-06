@@ -176,7 +176,24 @@ export const useProjectStore = create<ProjectState>()(
     {
       name: 'yco-project-storage',
       storage: createJSONStorage(() => localStorage),
-      // Handle date serialization/deserialization
+      partialize: (state) => {
+        if (!state.currentProject?.selectedStoryboard?.scenes) {
+          return state;
+        }
+        return {
+          ...state,
+          currentProject: {
+            ...state.currentProject,
+            selectedStoryboard: state.currentProject.selectedStoryboard ? {
+              ...state.currentProject.selectedStoryboard,
+              scenes: state.currentProject.selectedStoryboard.scenes.map(scene => {
+                const { generatedImageUrl, ...rest } = scene;
+                return rest;
+              })
+            } : null
+          }
+        };
+      },
       onRehydrateStorage: () => (state) => {
         if (state?.currentProject) {
           state.currentProject.createdAt = new Date(state.currentProject.createdAt);

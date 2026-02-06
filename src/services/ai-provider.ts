@@ -21,9 +21,9 @@ function getAISettings(): AISettings {
   return {
     useAI: false,
     geminiApiKey: '',
-    geminiModel: 'gemini-1.5-flash',
+    geminiModel: 'gemini-3-flash-preview',
     useImageGen: false,
-    imageModel: 'dall-e-3'
+    imageModel: 'gpt-image-1.5'
   };
 }
 
@@ -142,8 +142,8 @@ class AIGateway {
 
         // Determine model based on type
         const model = request.type === 'image'
-          ? currentSettings.imageModel || 'dall-e-3'
-          : currentSettings.geminiModel || 'gemini-1.5-flash';
+          ? currentSettings.imageModel || 'gpt-image-1.5'
+          : currentSettings.geminiModel || 'gemini-3-flash-preview';
 
         const response = await fetch(`${apiUrl}/ai/generate`, {
           method: 'POST',

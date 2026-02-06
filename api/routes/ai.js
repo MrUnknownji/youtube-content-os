@@ -26,14 +26,16 @@ router.post("/generate", async (req, res) => {
     }
 
     // Handle Image Generation Requests
-    if (type === 'image') {
-      if (model.includes('dall-e')) {
+    if (type === "image") {
+      if (model.includes("gpt-image")) {
         return await generateOpenAIImage(req, res, { prompt, model });
-      } else if (model.includes('imagen')) {
+      } else if (model.includes("gemini-3-pro-image")) {
         return await generateGeminiImage(req, res, { prompt, model });
       } else {
-        // Default image fallback
-        return await generateOpenAIImage(req, res, { prompt, model: 'dall-e-3' });
+        return await generateOpenAIImage(req, res, {
+          prompt,
+          model: "gpt-image-1.5",
+        });
       }
     }
 
@@ -128,23 +130,26 @@ async function generateOpenAIImage(req, res, options) {
   const apiKey = req.headers["x-openai-api-key"] || process.env.OPENAI_API_KEY;
 
   if (!apiKey) {
-    return generateMock(res, { ...options, type: 'image' });
+    return generateMock(res, { ...options, type: "image" });
   }
 
   try {
-    const response = await fetch("https://api.openai.com/v1/images/generations", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
+    const response = await fetch(
+      "https://api.openai.com/v1/images/generations",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: options.model || "gpt-image-1.5",
+          prompt: options.prompt,
+          n: 1,
+          size: "1024x1024",
+        }),
       },
-      body: JSON.stringify({
-        model: options.model || "dall-e-3",
-        prompt: options.prompt,
-        n: 1,
-        size: "1024x1024",
-      }),
-    });
+    );
 
     if (!response.ok) {
       throw new Error(`OpenAI Image API error: ${response.status}`);
@@ -163,29 +168,56 @@ async function generateOpenAIImage(req, res, options) {
       "OpenAI image generation failed, falling back to mock:",
       error.message,
     );
-    return generateMock(res, { ...options, type: 'image' });
+    return generateMock(res, { ...options, type: "image" });
   }
 }
 
 async function generateGeminiImage(req, res, options) {
-  // Note: Gemini API image generation (Imagen) availability varies.
-  // This is a placeholder structure for when it's fully available via standard SDK or REST.
-  // Currently, Imagen via Vertex AI is common, but standard Gemini API support is preview.
-
   const apiKey = req.headers["x-gemini-api-key"] || process.env.GEMINI_API_KEY;
 
   if (!apiKey) {
-    return generateMock(res, { ...options, type: 'image' });
+    return generateMock(res, { ...options, type: "image" });
   }
 
-  // Placeholder: Gemini API Image Generation Logic
-  // As of now, direct text-to-image via standard google-genai package might differ.
-  // We will assume a hypothetical implementation or fallback to mock if SDK doesn't support it easily yet without Vertex.
+  try {
+    console.log("Generating image with Gemini 3 Pro Image Preview...");
 
-  console.warn("Gemini Image generation requested. Note: This requires specific API access.");
+    const ai = new GoogleGenAI({ apiKey });
+    const modelName = options.model || "gemini-3-pro-image-preview";
 
-  // For now, fall back to mock to prevent crashing, as Imagen integration requires specific Vertex AI setup often not present in simple keys.
-  return generateMock(res, { ...options, type: 'image' });
+    const response = await ai.models.generateContent({
+      model: modelName,
+      contents: options.prompt,
+      config: {
+        imageConfig: {
+          aspectRatio: "16:9",
+          imageSize: "2K",
+        },
+      },
+    });
+
+    const candidates = response.candidates || [];
+    if (candidates.length > 0 && candidates[0].content?.parts) {
+      for (const part of candidates[0].content.parts) {
+        if (part.inlineData && part.inlineData.data) {
+          const mimeType = part.inlineData.mimeType || "image/png";
+          const imageUrl = `data:${mimeType};base64,${part.inlineData.data}`;
+          return res.json({
+            success: true,
+            data: imageUrl,
+            fallbackUsed: false,
+            message: `Image generated with ${modelName}`,
+          });
+        }
+      }
+    }
+
+    console.warn("Gemini image response did not contain image data");
+    return generateMock(res, { ...options, type: "image" });
+  } catch (error) {
+    console.error("Gemini Image generation error:", error.message);
+    return generateMock(res, { ...options, type: "image" });
+  }
 }
 
 async function generateAnthropic(req, res, options) {
@@ -240,7 +272,7 @@ async function generateGemini(req, res, options) {
   }
 
   const modelName =
-    options.model || process.env.GEMINI_MODEL || "gemini-1.5-flash";
+    options.model || process.env.GEMINI_MODEL || "gemini-3-flash-preview";
 
   try {
     console.log(`Initializing Gemini V2 SDK with model: ${modelName}`);
@@ -297,16 +329,16 @@ async function generateGemini(req, res, options) {
     });
   } catch (error) {
     console.error("Gemini V2 SDK error:", error);
-    // If specific model fails, try fallback to gemini-1.5-flash
+    // If specific model fails, try fallback to gemini-3-flash-preview
     if (
       error.message &&
       error.message.includes("not found") &&
-      modelName !== "gemini-1.5-flash"
+      modelName !== "gemini-3-flash-preview"
     ) {
-      console.log("Retrying with gemini-1.5-flash...");
+      console.log("Retrying with gemini-3-flash-preview...");
       return generateGemini(req, res, {
         ...options,
-        model: "gemini-1.5-flash",
+        model: "gemini-3-flash-preview",
       });
     }
 

@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Settings, Eye, EyeOff, Sparkles, Zap, Trash2, AlertTriangle, Database, ImageIcon } from 'lucide-react';
+import { Settings, Eye, EyeOff, Sparkles, Zap, Trash2, AlertTriangle, Database, ImageIcon, Cloud } from 'lucide-react';
 import { toast } from 'sonner';
 import { useProjectStore } from '@/state/projectStore';
 
@@ -31,6 +31,10 @@ interface AISettings {
   mongoUri: string;
   useImageGen: boolean;
   imageModel: string;
+  useCloudinary: boolean;
+  cloudinaryCloudName: string;
+  cloudinaryApiKey: string;
+  cloudinaryApiSecret: string;
 }
 
 const STORAGE_KEY = 'yco-ai-settings';
@@ -44,10 +48,14 @@ export function getAISettings(): AISettings {
       return {
         useAI: parsed.useAI ?? false,
         geminiApiKey: parsed.geminiApiKey ?? '',
-        geminiModel: parsed.geminiModel ?? 'gemini-1.5-flash',
+        geminiModel: parsed.geminiModel ?? 'gemini-3-flash-preview',
         mongoUri: parsed.mongoUri ?? '',
         useImageGen: parsed.useImageGen ?? false,
-        imageModel: parsed.imageModel ?? 'dall-e-3'
+        imageModel: parsed.imageModel ?? 'gpt-image-1.5',
+        useCloudinary: parsed.useCloudinary ?? false,
+        cloudinaryCloudName: parsed.cloudinaryCloudName ?? '',
+        cloudinaryApiKey: parsed.cloudinaryApiKey ?? '',
+        cloudinaryApiSecret: parsed.cloudinaryApiSecret ?? ''
       };
     }
   } catch (e) {
@@ -56,10 +64,14 @@ export function getAISettings(): AISettings {
   return {
     useAI: false,
     geminiApiKey: '',
-    geminiModel: 'gemini-1.5-flash',
+    geminiModel: 'gemini-3-flash-preview',
     mongoUri: '',
     useImageGen: false,
-    imageModel: 'dall-e-3'
+    imageModel: 'gpt-image-1.5',
+    useCloudinary: false,
+    cloudinaryCloudName: '',
+    cloudinaryApiKey: '',
+    cloudinaryApiSecret: ''
   };
 }
 
@@ -84,6 +96,8 @@ export function SettingsDialog() {
   const [settings, setSettings] = useState<AISettings>(getAISettings());
   const [showKey, setShowKey] = useState(false);
   const [showMongo, setShowMongo] = useState(false);
+  const [showCloudinaryKey, setShowCloudinaryKey] = useState(false);
+  const [showCloudinarySecret, setShowCloudinarySecret] = useState(false);
   const { createNewProject, setPinnedItems } = useProjectStore();
 
   useEffect(() => {
@@ -105,7 +119,15 @@ export function SettingsDialog() {
   };
 
   const handleToggleImageGen = (checked: boolean) => {
-    setSettings(prev => ({ ...prev, useImageGen: checked }));
+    setSettings(prev => ({ 
+      ...prev, 
+      useImageGen: checked,
+      useCloudinary: checked ? prev.useCloudinary : false
+    }));
+  };
+
+  const handleToggleCloudinary = (checked: boolean) => {
+    setSettings(prev => ({ ...prev, useCloudinary: checked }));
   };
 
   const handleReset = () => {
@@ -213,9 +235,8 @@ export function SettingsDialog() {
                     <SelectValue placeholder="Select Model" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="gemini-1.5-flash">Gemini 1.5 Flash (Fast)</SelectItem>
-                    <SelectItem value="gemini-1.5-pro">Gemini 1.5 Pro (Capable)</SelectItem>
-                    <SelectItem value="gemini-2.0-flash-exp">Gemini 2.0 Flash (Preview)</SelectItem>
+                    <SelectItem value="gemini-3-flash-preview">Gemini 3 Flash (Fast)</SelectItem>
+                    <SelectItem value="gemini-3-pro-preview">Gemini 3 Pro (Capable)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -245,20 +266,96 @@ export function SettingsDialog() {
               </div>
 
               {settings.useImageGen && (
-                <div className="space-y-2 pt-2 border-t border-border">
-                  <Label className="font-sans text-foreground">Image Model</Label>
-                  <Select
-                    value={settings.imageModel}
-                    onValueChange={(value) => setSettings(prev => ({ ...prev, imageModel: value }))}
-                  >
-                    <SelectTrigger className="w-full bg-input border-input">
-                      <SelectValue placeholder="Select Model" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="dall-e-3">DALL-E 3 (OpenAI)</SelectItem>
-                      <SelectItem value="imagen-3.0-generate-001">Imagen 3 (Google)</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="space-y-4 pt-2 border-t border-border">
+                  <div className="space-y-2">
+                    <Label className="font-sans text-foreground">Image Model</Label>
+                    <Select
+                      value={settings.imageModel}
+                      onValueChange={(value) => setSettings(prev => ({ ...prev, imageModel: value }))}
+                    >
+                      <SelectTrigger className="w-full bg-input border-input">
+                        <SelectValue placeholder="Select Model" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="gpt-image-1.5">GPT Image 1.5 (OpenAI)</SelectItem>
+                        <SelectItem value="gemini-3-pro-image-preview">Gemini 3 Pro Image (Google)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2 border-t border-border">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-full bg-muted">
+                        <Cloud className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-foreground text-sm">Cloudinary Upload</p>
+                        <p className="text-xs text-muted-foreground">
+                          Store images in cloud (optional)
+                        </p>
+                      </div>
+                    </div>
+                    <Switch
+                      checked={settings.useCloudinary}
+                      onCheckedChange={handleToggleCloudinary}
+                      className="data-[state=checked]:bg-primary"
+                    />
+                  </div>
+
+                  {settings.useCloudinary && (
+                    <div className="space-y-3 pt-2 border-t border-border">
+                      <div className="space-y-2">
+                        <Label className="font-sans text-foreground text-sm">Cloud Name</Label>
+                        <Input
+                          placeholder="your-cloud-name"
+                          value={settings.cloudinaryCloudName}
+                          onChange={(e) => setSettings(prev => ({ ...prev, cloudinaryCloudName: e.target.value }))}
+                          className="bg-input border-input"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="font-sans text-foreground text-sm">API Key</Label>
+                        <div className="relative">
+                          <Input
+                            type={showCloudinaryKey ? 'text' : 'password'}
+                            placeholder="123456789012345"
+                            value={settings.cloudinaryApiKey}
+                            onChange={(e) => setSettings(prev => ({ ...prev, cloudinaryApiKey: e.target.value }))}
+                            className="bg-input border-input pr-10"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowCloudinaryKey(!showCloudinaryKey)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                          >
+                            {showCloudinaryKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </button>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="font-sans text-foreground text-sm">API Secret</Label>
+                        <div className="relative">
+                          <Input
+                            type={showCloudinarySecret ? 'text' : 'password'}
+                            placeholder="••••••••••••••••"
+                            value={settings.cloudinaryApiSecret}
+                            onChange={(e) => setSettings(prev => ({ ...prev, cloudinaryApiSecret: e.target.value }))}
+                            className="bg-input border-input pr-10"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowCloudinarySecret(!showCloudinarySecret)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                          >
+                            {showCloudinarySecret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </button>
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Generated images will be uploaded to Cloudinary and stored as URLs instead of base64 data.
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

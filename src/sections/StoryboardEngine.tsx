@@ -28,6 +28,8 @@ import { useProjectStore } from '@/state/projectStore';
 import { useAIGeneration } from '@/hooks/useAIGeneration';
 import { getAIGateway } from '@/services/ai-provider';
 import { getDatabaseGateway } from '@/services/db-adapter';
+import { ImageViewer } from '@/components/ImageViewer';
+import { getAISettings } from '@/components/SettingsDialog';
 import type { StoryboardScene, PinnedItem } from '@/types';
 
 const MOCK_SCENES: StoryboardScene[] = [
@@ -121,6 +123,7 @@ export function StoryboardEngine() {
   const [generateImages, setGenerateImages] = useState(false);
   const [generatingScene, setGeneratingScene] = useState<number | null>(null);
   const [copiedPrompt, setCopiedPrompt] = useState<number | null>(null);
+  const [isFinalizing, setIsFinalizing] = useState(false);
 
   const ai = getAIGateway();
   const db = getDatabaseGateway();
@@ -302,9 +305,82 @@ Return as valid JSON array. Ensure total duration matches script.`;
     }
   };
 
-  const handleFinalizeStoryboard = () => {
-    finalizeStoryboard(scenes);
-    toast.success('Storyboard finalized');
+  const uploadToCloudinary = async (imageData: string, sceneNumber: number): Promise<string | null> => {
+    const settings = getAISettings();
+    if (!settings.useCloudinary || !settings.cloudinaryCloudName || !settings.cloudinaryApiKey) {
+      return null;
+    }
+
+    try {
+      const isProd = import.meta.env.PROD;
+      const apiUrl = import.meta.env.VITE_API_URL || (isProd ? '/api' : 'http://localhost:3001/api');
+
+      const response = await fetch(`${apiUrl}/upload`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-cloudinary-cloud-name': settings.cloudinaryCloudName,
+          'x-cloudinary-api-key': settings.cloudinaryApiKey,
+          'x-cloudinary-api-secret': settings.cloudinaryApiSecret
+        },
+        body: JSON.stringify({
+          image: imageData,
+          filename: `scene-${sceneNumber}-${Date.now()}`,
+          metadata: { sceneNumber }
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && !result.fallbackUsed) {
+          return result.data.url;
+        }
+      }
+    } catch (error) {
+      console.error(`Failed to upload scene ${sceneNumber} to Cloudinary:`, error);
+    }
+    return null;
+  };
+
+  const handleFinalizeStoryboard = async () => {
+    setIsFinalizing(true);
+    
+    try {
+      const settings = getAISettings();
+      let finalScenes = [...scenes];
+
+      if (settings.useCloudinary && settings.useImageGen) {
+        const scenesWithImages = scenes.filter(s => s.generatedImageUrl?.startsWith('data:'));
+        
+        if (scenesWithImages.length > 0) {
+          toast.info(`Uploading ${scenesWithImages.length} images to Cloudinary...`);
+          
+          const uploadedScenes = await Promise.all(
+            scenes.map(async (scene) => {
+              if (scene.generatedImageUrl?.startsWith('data:')) {
+                const cloudinaryUrl = await uploadToCloudinary(scene.generatedImageUrl, scene.sceneNumber);
+                if (cloudinaryUrl) {
+                  return { ...scene, generatedImageUrl: cloudinaryUrl };
+                }
+              }
+              return scene;
+            })
+          );
+          
+          finalScenes = uploadedScenes;
+          setScenes(finalScenes);
+          toast.success('Images uploaded to Cloudinary');
+        }
+      }
+
+      finalizeStoryboard(finalScenes);
+      toast.success('Storyboard finalized');
+    } catch (error) {
+      console.error('Failed to finalize storyboard:', error);
+      toast.error('Failed to finalize storyboard');
+    } finally {
+      setIsFinalizing(false);
+    }
   };
 
   const totalDuration = scenes.reduce((acc, s) => acc + s.duration, 0);
@@ -515,10 +591,9 @@ Return as valid JSON array. Ensure total duration matches script.`;
                         {/* Generated Image Preview */}
                         {scene.generatedImageUrl && (
                           <div className="border rounded-md overflow-hidden">
-                            <img 
+                            <ImageViewer
                               src={scene.generatedImageUrl} 
                               alt={`Scene ${scene.sceneNumber} preview`}
-                              className="w-full h-40 object-cover"
                             />
                           </div>
                         )}
@@ -548,11 +623,20 @@ Return as valid JSON array. Ensure total duration matches script.`;
       {/* Finalize Button */}
       <Button
         onClick={handleFinalizeStoryboard}
-        disabled={localIsGenerating}
+        disabled={localIsGenerating || isFinalizing}
         className="w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-full py-6"
       >
-        <Check className="mr-2 h-5 w-5" />
-        Finalize Storyboard
+        {isFinalizing ? (
+          <>
+            <RefreshCw className="mr-2 h-5 w-5 animate-spin" />
+            Uploading Images...
+          </>
+        ) : (
+          <>
+            <Check className="mr-2 h-5 w-5" />
+            Finalize Storyboard
+          </>
+        )}
       </Button>
     </div>
   );
