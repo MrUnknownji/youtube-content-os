@@ -4,6 +4,9 @@ import type { AIConfig, AIGenerateRequest, AIGenerateResponse, AIProvider } from
 interface AISettings {
   useAI: boolean;
   geminiApiKey: string;
+  geminiModel?: string;
+  useImageGen?: boolean;
+  imageModel?: string;
 }
 
 function getAISettings(): AISettings {
@@ -17,7 +20,10 @@ function getAISettings(): AISettings {
   }
   return {
     useAI: false,
-    geminiApiKey: ''
+    geminiApiKey: '',
+    geminiModel: 'gemini-1.5-flash',
+    useImageGen: false,
+    imageModel: 'dall-e-3'
   };
 }
 
@@ -116,6 +122,11 @@ class AIGateway {
     
     // If AI mode is enabled, use Gemini via backend
     if (currentSettings.useAI) {
+      // Check for image generation disable override
+      if (request.type === 'image' && !currentSettings.useImageGen) {
+        return this.generateMock(request);
+      }
+
       try {
         const headers: Record<string, string> = {
           'Content-Type': 'application/json'
@@ -129,16 +140,21 @@ class AIGateway {
         const isProd = import.meta.env.PROD;
         const apiUrl = import.meta.env.VITE_API_URL || (isProd ? '/api' : 'http://localhost:3001/api');
 
+        // Determine model based on type
+        const model = request.type === 'image'
+          ? currentSettings.imageModel || 'dall-e-3'
+          : currentSettings.geminiModel || 'gemini-1.5-flash';
+
         const response = await fetch(`${apiUrl}/ai/generate`, {
           method: 'POST',
           headers,
           body: JSON.stringify({
-            provider: 'gemini',
+            provider: 'gemini', // Backend handles logic
             prompt: request.prompt,
             type: request.type || 'text',
             images: request.images,
             format: request.format,
-            model: 'gemini-3-flash-preview',
+            model,
             temperature: 0.7,
             maxTokens: request.config?.maxTokens || 8192
           })

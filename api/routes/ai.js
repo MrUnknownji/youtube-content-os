@@ -25,6 +25,18 @@ router.post("/generate", async (req, res) => {
       });
     }
 
+    // Handle Image Generation Requests
+    if (type === 'image') {
+      if (model.includes('dall-e')) {
+        return await generateOpenAIImage(req, res, { prompt, model });
+      } else if (model.includes('imagen')) {
+        return await generateGeminiImage(req, res, { prompt, model });
+      } else {
+        // Default image fallback
+        return await generateOpenAIImage(req, res, { prompt, model: 'dall-e-3' });
+      }
+    }
+
     // Route to appropriate provider
     switch (provider) {
       case "openai":
@@ -32,7 +44,7 @@ router.post("/generate", async (req, res) => {
           prompt,
           type,
           model,
-          temperature,
+          temperature, // Assuming this is defined in outer scope or passed in request
           maxTokens,
           format,
         });
@@ -110,6 +122,70 @@ async function generateOpenAI(req, res, options) {
     );
     return generateMock(res, options);
   }
+}
+
+async function generateOpenAIImage(req, res, options) {
+  const apiKey = req.headers["x-openai-api-key"] || process.env.OPENAI_API_KEY;
+
+  if (!apiKey) {
+    return generateMock(res, { ...options, type: 'image' });
+  }
+
+  try {
+    const response = await fetch("https://api.openai.com/v1/images/generations", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: options.model || "dall-e-3",
+        prompt: options.prompt,
+        n: 1,
+        size: "1024x1024",
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenAI Image API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    res.json({
+      success: true,
+      data: data.data[0]?.url || "",
+      fallbackUsed: false,
+      message: `Image generated with ${options.model}`,
+    });
+  } catch (error) {
+    console.warn(
+      "OpenAI image generation failed, falling back to mock:",
+      error.message,
+    );
+    return generateMock(res, { ...options, type: 'image' });
+  }
+}
+
+async function generateGeminiImage(req, res, options) {
+  // Note: Gemini API image generation (Imagen) availability varies.
+  // This is a placeholder structure for when it's fully available via standard SDK or REST.
+  // Currently, Imagen via Vertex AI is common, but standard Gemini API support is preview.
+
+  const apiKey = req.headers["x-gemini-api-key"] || process.env.GEMINI_API_KEY;
+
+  if (!apiKey) {
+    return generateMock(res, { ...options, type: 'image' });
+  }
+
+  // Placeholder: Gemini API Image Generation Logic
+  // As of now, direct text-to-image via standard google-genai package might differ.
+  // We will assume a hypothetical implementation or fallback to mock if SDK doesn't support it easily yet without Vertex.
+
+  console.warn("Gemini Image generation requested. Note: This requires specific API access.");
+
+  // For now, fall back to mock to prevent crashing, as Imagen integration requires specific Vertex AI setup often not present in simple keys.
+  return generateMock(res, { ...options, type: 'image' });
 }
 
 async function generateAnthropic(req, res, options) {
