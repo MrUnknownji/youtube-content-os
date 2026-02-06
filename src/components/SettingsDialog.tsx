@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Settings, Eye, EyeOff, Sparkles, Zap, Trash2, AlertTriangle, Database } from 'lucide-react';
+import { Settings, Eye, EyeOff, Sparkles, Zap, Trash2, AlertTriangle, Database, ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { useProjectStore } from '@/state/projectStore';
 
@@ -29,6 +29,8 @@ interface AISettings {
   geminiApiKey: string;
   geminiModel: string;
   mongoUri: string;
+  useImageGen: boolean;
+  imageModel: string;
 }
 
 const STORAGE_KEY = 'yco-ai-settings';
@@ -43,7 +45,9 @@ export function getAISettings(): AISettings {
         useAI: parsed.useAI ?? false,
         geminiApiKey: parsed.geminiApiKey ?? '',
         geminiModel: parsed.geminiModel ?? 'gemini-1.5-flash',
-        mongoUri: parsed.mongoUri ?? ''
+        mongoUri: parsed.mongoUri ?? '',
+        useImageGen: parsed.useImageGen ?? false,
+        imageModel: parsed.imageModel ?? 'dall-e-3'
       };
     }
   } catch (e) {
@@ -53,7 +57,9 @@ export function getAISettings(): AISettings {
     useAI: false,
     geminiApiKey: '',
     geminiModel: 'gemini-1.5-flash',
-    mongoUri: ''
+    mongoUri: '',
+    useImageGen: false,
+    imageModel: 'dall-e-3'
   };
 }
 
@@ -96,6 +102,10 @@ export function SettingsDialog() {
 
   const handleToggleAI = (checked: boolean) => {
     setSettings(prev => ({ ...prev, useAI: checked }));
+  };
+
+  const handleToggleImageGen = (checked: boolean) => {
+    setSettings(prev => ({ ...prev, useImageGen: checked }));
   };
 
   const handleReset = () => {
@@ -209,6 +219,48 @@ export function SettingsDialog() {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+          )}
+
+          {/* Image Generation Settings */}
+          {settings.useAI && (
+            <div className="flex flex-col gap-4 p-4 rounded-lg border border-border bg-card">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-full bg-accent">
+                    <ImageIcon className="h-5 w-5 text-accent-foreground" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-foreground">Image Generation</p>
+                    <p className="text-sm text-muted-foreground">
+                      Enable AI image creation
+                    </p>
+                  </div>
+                </div>
+                <Switch
+                  checked={settings.useImageGen}
+                  onCheckedChange={handleToggleImageGen}
+                  className="data-[state=checked]:bg-primary"
+                />
+              </div>
+
+              {settings.useImageGen && (
+                <div className="space-y-2 pt-2 border-t border-border">
+                  <Label className="font-sans text-foreground">Image Model</Label>
+                  <Select
+                    value={settings.imageModel}
+                    onValueChange={(value) => setSettings(prev => ({ ...prev, imageModel: value }))}
+                  >
+                    <SelectTrigger className="w-full bg-input border-input">
+                      <SelectValue placeholder="Select Model" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="dall-e-3">DALL-E 3 (OpenAI)</SelectItem>
+                      <SelectItem value="imagen-3.0-generate-001">Imagen 3 (Google)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
           )}
 
