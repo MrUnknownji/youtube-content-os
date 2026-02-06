@@ -195,8 +195,8 @@ export function Navigation({ currentStage, onStageChange }: NavigationProps) {
         <div className="p-4 border-t border-sidebar-border">
           <Button 
             variant="ghost" 
-            className="w-full flex items-center justify-start gap-2 text-sm text-sidebar-foreground hover:text-sidebar-primary transition-colors px-2"
-            onClick={() => setShowPinnedSidebar(true)}
+            className="w-full flex items-center justify-start gap-2 text-sm text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors px-2"
+            onClick={() => setShowPinnedSidebar(prev => !prev)}
           >
             <Bookmark className="h-4 w-4" />
             <span>Pinned Items</span>
