@@ -48,7 +48,7 @@ const STATUS_COLORS = {
 };
 
 export function Navigation({ currentStage, onStageChange }: NavigationProps) {
-  const { currentProject, pinnedItems, serviceStatus, createNewProject: storeCreateNewProject } = useProjectStore();
+  const { currentProject, pinnedItems, serviceStatus, isGenerating, createNewProject: storeCreateNewProject } = useProjectStore();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showPinnedSidebar, setShowPinnedSidebar] = useState(false);
 
@@ -68,6 +68,7 @@ export function Navigation({ currentStage, onStageChange }: NavigationProps) {
   };
 
   const handleStageClick = (stageId: WorkflowStage) => {
+    if (isGenerating) return;
     const status = getStageStatus(stageId);
     if (status === 'locked') {
       return;
@@ -123,7 +124,7 @@ export function Navigation({ currentStage, onStageChange }: NavigationProps) {
                 <button
                   key={stage.id}
                   onClick={() => handleStageClick(stage.id)}
-                  disabled={status === 'locked'}
+                  disabled={status === 'locked' || isGenerating}
                   className={`
                     w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium
                     transition-colors duration-200
@@ -260,7 +261,7 @@ export function Navigation({ currentStage, onStageChange }: NavigationProps) {
                   <button
                     key={stage.id}
                     onClick={() => handleStageClick(stage.id)}
-                    disabled={status === 'locked'}
+                    disabled={status === 'locked' || isGenerating}
                     className={`
                       w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm
                       ${status === 'active' 
