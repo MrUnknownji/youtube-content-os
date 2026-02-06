@@ -4,6 +4,7 @@ import type { AIConfig, AIGenerateRequest, AIGenerateResponse, AIProvider } from
 interface AISettings {
   useAI: boolean;
   geminiApiKey: string;
+  geminiModel?: string;
 }
 
 function getAISettings(): AISettings {
@@ -17,7 +18,8 @@ function getAISettings(): AISettings {
   }
   return {
     useAI: false,
-    geminiApiKey: ''
+    geminiApiKey: '',
+    geminiModel: 'gemini-1.5-flash'
   };
 }
 
@@ -138,7 +140,7 @@ class AIGateway {
             type: request.type || 'text',
             images: request.images,
             format: request.format,
-            model: 'gemini-3-flash-preview',
+            model: currentSettings.geminiModel || 'gemini-1.5-flash',
             temperature: 0.7,
             maxTokens: request.config?.maxTokens || 8192
           })
