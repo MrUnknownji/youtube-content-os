@@ -90,9 +90,7 @@ export function Navigation({ currentStage, onStageChange }: NavigationProps) {
         {/* Logo */}
         <div className="p-4 border-b border-sidebar-border">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <Sparkles className="h-4 w-4 text-primary-foreground" />
-            </div>
+            <img src="/favicon.svg" alt="Logo" className="w-8 h-8" />
             <div>
               <h1 className="font-sans font-semibold text-sidebar-foreground text-sm">
                 Content OS
@@ -217,9 +215,7 @@ export function Navigation({ currentStage, onStageChange }: NavigationProps) {
       <header className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-background border-b border-border">
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <Sparkles className="h-4 w-4 text-primary-foreground" />
-            </div>
+            <img src="/favicon.svg" alt="Logo" className="w-8 h-8" />
             <span className="font-sans font-semibold text-foreground">Content OS</span>
           </div>
           <div className="flex items-center gap-2">

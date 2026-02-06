@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Pure black background -->
+  <rect width="512" height="512" rx="112" fill="#09090b"/>
+  <!-- Subtle border -->
+  <rect x="4" y="4" width="504" height="504" rx="108" fill="none" stroke="#27272a" stroke-width="2"/>
+  <!-- Outline play button - sleek wireframe style -->
+  <path d="M 195 155 L 195 357 L 365 256 Z" fill="none" stroke="white" stroke-width="6" stroke-linejoin="round"/>
+  <!-- Small accent dot -->
+  <circle cx="400" cy="112" r="8" fill="#3b82f6"/>
+</svg>

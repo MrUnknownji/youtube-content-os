@@ -3,6 +3,7 @@ import {
   Dialog,
   DialogContent,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Maximize2, Download, X } from 'lucide-react';
@@ -83,6 +84,7 @@ export function ImageViewer({ src, alt, className = '' }: ImageViewerProps) {
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent className="max-w-[90vw] max-h-[90vh] p-0 overflow-hidden bg-black/95 border-border">
           <DialogTitle className="sr-only">{alt}</DialogTitle>
+          <DialogDescription className="sr-only">Full size preview of {alt}</DialogDescription>
           <div className="relative w-full h-full flex items-center justify-center">
             <Button
               size="icon"
