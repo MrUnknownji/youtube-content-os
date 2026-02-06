@@ -251,7 +251,7 @@ Return as valid JSON array with fields: id, title, rationale, predictedScore`;
                   <Button
                     size="icon"
                     onClick={() => handleFinalizeTopic(topic)}
-                    disabled={finalizedTopicId === topic.id}
+                    disabled={localIsGenerating || finalizedTopicId === topic.id}
                     className={`
                       rounded-full
                       ${finalizedTopicId === topic.id 

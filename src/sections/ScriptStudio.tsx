@@ -521,6 +521,7 @@ Return as valid JSON array with fields: id, content, wordCount, estimatedDuratio
                     </div>
                     <Button
                       onClick={() => handleFinalizeScript(script)}
+                      disabled={localIsGenerating}
                       className="w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-full"
                     >
                       <Check className="mr-2 h-4 w-4" />
