@@ -301,19 +301,40 @@ export function ScriptStudio() {
     
     try {
       const topic = currentProject?.selectedTopic?.title || 'productivity and focus';
-      const prompt = `Write 3 YouTube video scripts about "${topic}" for a ${format} video format.
- 
+      const prompt = `You are a professional YouTube scriptwriter. Write exactly 3 complete YouTube video scripts about: "${topic}"
+
+Format: ${format} video
+
+CRITICAL LANGUAGE REQUIREMENT:
+- Write the entire script in HINGLISH (Hindi + English mix, written in English/Roman script)
+- Example: "Aaj main aapko bataunga ek amazing trick jo will change your life"
+- Use conversational Indian YouTube creator tone
+- Mix Hindi and English naturally like Indian creators do
+
 ${format === 'facecam' ? 
-  'Include host directions, emotional cues, and camera angles in [brackets].' : 
-  'Include B-roll markers, stock footage suggestions, text overlays, and screen capture instructions.'}
- 
-Each script should be:
-- 3-4 minutes when read aloud
-- Engaging hook in first 15 seconds
+  `FACECAM FORMAT:
+- Include host directions in [brackets] like [CAMERA ON - ENERGETIC] or [LEAN IN - CONSPIRATORIAL]
+- Add emotional cues and camera angles
+- Write dialogue meant to be spoken directly to camera` : 
+  `FACELESS FORMAT:
+- Include [TIMESTAMP] markers like [0:00-0:15]
+- Add B-roll descriptions, stock footage suggestions
+- Include TEXT OVERLAY instructions
+- Add NARRATOR (V.O.) markers for voiceover`}
+
+SCRIPT REQUIREMENTS:
+- Duration: 3-4 minutes when read aloud
+- Hook in first 15 seconds that grabs attention
 - Clear problem/solution structure
-- Strong call-to-action at the end
- 
-Return as valid JSON array with fields: id, content, wordCount, estimatedDuration.`;
+- Strong call-to-action ending (subscribe, like, comment)
+- DO NOT include meta-commentary or advice about YouTube growth
+- Write the ACTUAL SCRIPT content only
+
+Return as valid JSON array with exactly these fields:
+- id: "script-1", "script-2", "script-3"
+- content: the full script text in Hinglish
+- wordCount: approximate word count (number)
+- estimatedDuration: time like "3:30"`;
 
       const response = await generate({ prompt, type: 'text', format: 'json' });
       

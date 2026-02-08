@@ -77,9 +77,23 @@ export function TopicIntelligence() {
         'Generate video topic suggestions';
       
       const prompt = `${dataContext}
-Generate 10 engaging YouTube video topic suggestions. 
+
+You are a YouTube video title expert. Generate exactly 10 engaging YouTube video TITLE suggestions that would work well as clickable video titles.
+
+IMPORTANT INSTRUCTIONS:
+- Generate VIDEO TITLES only, not tips, not advice, not strategies
+- Each title should be catchy, curiosity-inducing, and click-worthy
+- Use proven title formats: numbers, how-to, questions, revelations, challenges
+- Titles should be in HINGLISH (mix of Hindi + English, written in English script)
+- Example good titles: "Maine 30 Din Ye Try Kiya - Results Dekho!", "Ye Galti Mat Karna YouTube Par"
+
 User preferences: ${preferences || 'None specified'}
-Return as valid JSON array with fields: id, title, rationale, predictedScore`;
+
+Return as valid JSON array with these exact fields:
+- id: unique identifier like "topic-1"
+- title: the video title in Hinglish (mix of Hindi and English in English script)
+- rationale: brief explanation of why this title works (in English)
+- predictedScore: number 60-95 indicating click potential`;
 
       const response = await generate({ prompt, type: 'text', format: 'json' });
       

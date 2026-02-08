@@ -29,6 +29,7 @@ import { useProjectStore } from '@/state/projectStore';
 import { useAIGeneration } from '@/hooks/useAIGeneration';
 import { getAIGateway } from '@/services/ai-provider';
 import { getDatabaseGateway } from '@/services/db-adapter';
+import { ImageViewer } from '@/components/ImageViewer';
 import type { VideoMetadata, PinnedItem } from '@/types';
 
 const MOCK_TITLES = [
@@ -160,8 +161,15 @@ export function MetadataSuite() {
     setLocalIsGenerating(true);
     try {
       const topic = currentProject?.selectedTopic?.title || 'productivity video';
-      const prompt = `Generate 10 engaging YouTube video titles for video about: "${topic}"
-Return as valid JSON array of strings.`;
+      const prompt = `You are a YouTube title expert. Generate exactly 10 engaging YouTube video titles for a video about: "${topic}"
+
+CRITICAL LANGUAGE REQUIREMENT:
+- Write ALL titles in HINGLISH (Hindi + English mix, written in English/Roman script)
+- Example: "Maine 30 Din Ye Try Kiya - Results Dekho!"
+- Make them catchy, clickable, and curiosity-inducing
+- Use proven formats: numbers, challenges, revelations, before/after
+
+Return as valid JSON array of strings only. No explanations.`;
 
       const response = await generate({ prompt, type: 'text', format: 'json' });
       
@@ -194,11 +202,24 @@ Return as valid JSON array of strings.`;
       
       const timestamps = scenes.map(s => `${s.timestampStart} - ${s.scriptSegment.slice(0, 50)}...`).join('\n');
       
-      const prompt = `Write an SEO YouTube description for: "${topic}"
-Script: ${script}
-Timestamps:
+      const prompt = `Write an SEO-optimized YouTube video description for: "${topic}"
+
+CRITICAL LANGUAGE REQUIREMENT:
+- Write the description in HINGLISH (Hindi + English mix, written in English/Roman script)
+- Make it conversational and engaging like Indian YouTube creators
+
+Script excerpt: ${script}
+
+Timestamps to include:
 ${timestamps}
-Include emojis and 5 hashtags.`;
+
+DESCRIPTION REQUIREMENTS:
+- Start with a hook line about the video
+- Include the timestamps in proper format
+- Add relevant emojis throughout
+- End with 5 relevant hashtags
+- Include a call-to-action to subscribe
+- Total length: 150-300 words`;
 
       const response = await generate({ prompt, type: 'text' });
       if (response.success) {
@@ -314,7 +335,6 @@ High quality, eye-catching, professional.`;
     const finalDescription = currentProject.selectedMetadata?.description || description;
     const finalTags = currentProject.selectedMetadata?.tags || tags;
 
-    // Construct the markdown/text content
     let content = `# ${finalTitle}\n\n`;
     content += `## Description\n${finalDescription}\n\n`;
 
@@ -342,14 +362,31 @@ High quality, eye-catching, professional.`;
     }
 
     if (currentProject.selectedTopic) {
-        content += `## Topic\n${currentProject.selectedTopic.title}\n\n`;
+      content += `## Topic\n${currentProject.selectedTopic.title}\n\n`;
     }
 
     if (currentProject.selectedScript) {
-        content += `## Script\n${currentProject.selectedScript.content}\n\n`;
+      content += `## Script\n\`\`\`\n${currentProject.selectedScript.content}\n\`\`\`\n\n`;
     }
 
-    // Create download
+    if (currentProject.selectedStoryboard?.scenes?.length) {
+      content += `## Visual Storyboard\n\n`;
+      currentProject.selectedStoryboard.scenes.forEach((scene) => {
+        content += `### Scene ${scene.sceneNumber} (${scene.timestampStart} - ${scene.timestampEnd})\n`;
+        content += `**Type:** ${scene.type} | **Duration:** ${scene.duration}s\n\n`;
+        content += `**Script Segment:**\n${scene.scriptSegment}\n\n`;
+        content += `**Visual Description:**\n${scene.visualDescription}\n\n`;
+        content += `**Image Prompt:**\n${scene.imagePrompt}\n\n`;
+        if (scene.recordingInstructions) {
+          content += `**Recording Instructions:**\n${scene.recordingInstructions}\n\n`;
+        }
+        if (scene.audioNote) {
+          content += `**Audio Note:** ${scene.audioNote}\n\n`;
+        }
+        content += `---\n\n`;
+      });
+    }
+
     const blob = new Blob([content], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -642,11 +679,12 @@ High quality, eye-catching, professional.`;
                 <CardTitle className="text-sm font-sans">Generated Preview</CardTitle>
               </CardHeader>
               <CardContent>
-                <img 
-                  src={generatedThumbnailUrl} 
-                  alt="Generated thumbnail preview"
-                  className="w-full max-w-md mx-auto rounded-lg"
-                />
+                <div className="max-w-md mx-auto rounded-lg overflow-hidden border border-border">
+                  <ImageViewer 
+                    src={generatedThumbnailUrl} 
+                    alt="Generated thumbnail preview"
+                  />
+                </div>
               </CardContent>
             </Card>
           )}

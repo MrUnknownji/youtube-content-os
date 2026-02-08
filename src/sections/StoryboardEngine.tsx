@@ -21,6 +21,8 @@ import {
   Wand2,
   Copy,
   CheckCheck,
+  ChevronsUp,
+  ChevronsDown,
   HelpCircle
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -138,6 +140,14 @@ export function StoryboardEngine() {
       }
       return next;
     });
+  };
+
+  const expandAllScenes = () => {
+    setExpandedScenes(new Set(scenes.map(s => s.sceneNumber)));
+  };
+
+  const collapseAllScenes = () => {
+    setExpandedScenes(new Set());
   };
 
   const generationStarted = useRef(false);
@@ -410,6 +420,26 @@ Return as valid JSON array. Ensure total duration matches script.`;
             <Label htmlFor="generate-images" className="text-sm text-muted-foreground">
               Generate Images
             </Label>
+          </div>
+          <div className="flex items-center gap-1">
+            <Button
+              onClick={expandAllScenes}
+              variant="outline"
+              size="sm"
+              className="border-border"
+              title="Expand all scenes"
+            >
+              <ChevronsDown className="h-4 w-4" />
+            </Button>
+            <Button
+              onClick={collapseAllScenes}
+              variant="outline"
+              size="sm"
+              className="border-border"
+              title="Collapse all scenes"
+            >
+              <ChevronsUp className="h-4 w-4" />
+            </Button>
           </div>
           <Button
             onClick={handleGenerateStoryboard}
