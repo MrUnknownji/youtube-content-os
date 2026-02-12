@@ -219,7 +219,7 @@ Return as valid JSON array. Ensure total duration matches script.`;
                 return `${m}:${s_.toString().padStart(2, '0')}`;
               };
 
-              // Fix timestamps if they are missing or all 0:00
+              // Ensure timestamps are valid, filling in missing or default values
               const start = (s.timestampStart && s.timestampStart !== '0:00') ? s.timestampStart : (i === 0 ? '0:00' : lastEndTime);
               const end = (s.timestampEnd && s.timestampEnd !== '0:00' && s.timestampEnd !== start) ? s.timestampEnd : calcEnd(start, duration);
               
