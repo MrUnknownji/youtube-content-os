@@ -10,6 +10,7 @@ import { TopicIntelligence } from '@/sections/TopicIntelligence';
 import { ScriptStudio } from '@/sections/ScriptStudio';
 import { StoryboardEngine } from '@/sections/StoryboardEngine';
 import { MetadataSuite } from '@/sections/MetadataSuite';
+import { DirectImageGenerator } from '@/sections/DirectImageGenerator';
 import { useProjectStore } from '@/state/projectStore';
 import type { WorkflowStage } from '@/types';
 
@@ -44,6 +45,12 @@ function App() {
   }, []);
 
   const handleStageChange = (stage: WorkflowStage) => {
+    // Allow access to imagegen without a project
+    if (stage === 'imagegen') {
+      setCurrentStage(stage);
+      return;
+    }
+
     if (!currentProject) {
       toast.error('No active project');
       return;
@@ -67,7 +74,8 @@ function App() {
       script: () => currentProject.selectedTopic !== null,
       storyboard: () => currentProject.selectedScript !== null,
       metadata: () => currentProject.selectedStoryboard !== null,
-      complete: () => currentProject.selectedMetadata !== null
+      complete: () => currentProject.selectedMetadata !== null,
+      imagegen: () => true
     };
 
     if (prerequisites[stage]()) {
@@ -90,6 +98,8 @@ function App() {
       case 'metadata':
       case 'complete':
         return <MetadataSuite />;
+      case 'imagegen':
+        return <DirectImageGenerator />;
       default:
         return <DataIngestion />;
     }
@@ -136,10 +146,10 @@ function App() {
           {/* Stage Header */}
           <div className="mb-8">
             <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-              <span>Stage</span>
-              <span>{['ingestion', 'topics', 'script', 'storyboard', 'metadata', 'complete'].indexOf(currentStage) + 1}</span>
+              <span>{currentStage === 'imagegen' ? 'Tool' : 'Stage'}</span>
+              <span>{currentStage === 'imagegen' ? '•' : ['ingestion', 'topics', 'script', 'storyboard', 'metadata', 'complete'].indexOf(currentStage) + 1}</span>
               <span>of</span>
-              <span>6</span>
+              <span>{currentStage === 'imagegen' ? '•' : '6'}</span>
             </div>
             <h1 className="text-3xl font-bold font-sans text-foreground capitalize">
               {currentStage === 'ingestion' && 'Data Ingestion'}
@@ -148,6 +158,7 @@ function App() {
               {currentStage === 'storyboard' && 'Visual Storyboard'}
               {currentStage === 'metadata' && 'Metadata Suite'}
               {currentStage === 'complete' && 'Project Complete'}
+              {currentStage === 'imagegen' && 'Image Generator'}
             </h1>
           </div>
 

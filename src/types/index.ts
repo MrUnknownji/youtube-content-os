@@ -1,6 +1,6 @@
 // YouTube Content OS - TypeScript Interfaces
 
-export type WorkflowStage = 'ingestion' | 'topics' | 'script' | 'storyboard' | 'metadata' | 'complete';
+export type WorkflowStage = 'ingestion' | 'topics' | 'script' | 'storyboard' | 'metadata' | 'complete' | 'imagegen';
 
 export type DataSourceType = 'csv' | 'images' | 'manual';
 

@@ -18,7 +18,8 @@ import {
   X,
   Bookmark,
   ChevronRight,
-  Plus
+  Plus,
+  Image as ImageIcon
 } from 'lucide-react';
 import { useProjectStore } from '@/state/projectStore';
 import { PinnedItemsSidebar } from '@/sections/PinnedItemsSidebar';
@@ -40,6 +41,10 @@ const STAGES: { id: WorkflowStage; label: string; icon: React.ElementType }[] = 
   { id: 'complete', label: 'Done', icon: Check },
 ];
 
+const EXTRA_SECTIONS: { id: WorkflowStage; label: string; icon: React.ElementType }[] = [
+  { id: 'imagegen', label: 'Image Gen', icon: ImageIcon },
+];
+
 const STATUS_COLORS = {
   connected: 'bg-chart-1',
   disconnected: 'bg-destructive',
@@ -55,6 +60,11 @@ export function Navigation({ currentStage, onStageChange }: NavigationProps) {
   const pinnedCount = pinnedItems.length;
 
   const getStageStatus = (stageId: WorkflowStage) => {
+    // imagegen is always available
+    if (stageId === 'imagegen') {
+      return currentStage === 'imagegen' ? 'active' : 'available';
+    }
+
     if (!currentProject) return 'locked';
 
     const stageOrder = ['ingestion', 'topics', 'script', 'storyboard', 'metadata', 'complete'];
@@ -157,6 +167,44 @@ export function Navigation({ currentStage, onStageChange }: NavigationProps) {
               );
             })}
           </nav>
+          
+          {/* Extra Sections */}
+          <div className="mt-6 pt-4 border-t border-sidebar-border">
+            <p className="text-xs text-sidebar-foreground/50 mb-2 px-3">Tools</p>
+            <nav className="space-y-1">
+              {EXTRA_SECTIONS.map((section) => {
+                const Icon = section.icon;
+                const isActive = currentStage === section.id;
+                
+                return (
+                  <button
+                    key={section.id}
+                    onClick={() => handleStageClick(section.id)}
+                    className={`
+                      w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium
+                      transition-colors duration-200
+                      ${isActive 
+                        ? 'bg-sidebar-primary text-sidebar-primary-foreground' 
+                        : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground'}
+                    `}
+                  >
+                    <div className={`
+                      w-6 h-6 rounded-full flex items-center justify-center text-xs
+                      ${isActive
+                        ? 'bg-sidebar-primary-foreground text-sidebar-primary' 
+                        : 'bg-sidebar-accent text-sidebar-accent-foreground'}
+                    `}>
+                      <Icon className="h-3 w-3" />
+                    </div>
+                    <span>{section.label}</span>
+                    {isActive && (
+                      <ChevronRight className="ml-auto h-4 w-4" />
+                    )}
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
         </ScrollArea>
 
         {/* AI Mode Toggle & Service Status */}
@@ -275,6 +323,29 @@ export function Navigation({ currentStage, onStageChange }: NavigationProps) {
                   </button>
                 );
               })}
+              <div className="pt-2 mt-2 border-t border-border">
+                <p className="text-xs text-muted-foreground mb-1 px-3">Tools</p>
+                {EXTRA_SECTIONS.map((section) => {
+                  const Icon = section.icon;
+                  const isActive = currentStage === section.id;
+                  
+                  return (
+                    <button
+                      key={section.id}
+                      onClick={() => handleStageClick(section.id)}
+                      className={`
+                        w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm
+                        ${isActive 
+                          ? 'bg-primary text-primary-foreground' 
+                          : 'text-foreground/70 hover:bg-muted'}
+                      `}
+                    >
+                      <Icon className="h-4 w-4" />
+                      <span>{section.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </nav>
           </div>
         )}
