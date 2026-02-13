@@ -16,23 +16,17 @@ interface UploadResult {
 class StorageGateway {
   private cloudinaryConfig: {
     cloudName?: string;
-    apiKey?: string;
-    apiSecret?: string;
   };
 
   constructor() {
     this.cloudinaryConfig = {
       cloudName: import.meta.env.VITE_CLOUDINARY_CLOUD_NAME,
-      apiKey: import.meta.env.VITE_CLOUDINARY_API_KEY,
-      apiSecret: import.meta.env.VITE_CLOUDINARY_API_SECRET
     };
   }
 
   isCloudinaryAvailable(): boolean {
     return !!(
-      this.cloudinaryConfig.cloudName &&
-      this.cloudinaryConfig.apiKey &&
-      this.cloudinaryConfig.apiSecret
+      this.cloudinaryConfig.cloudName
     );
   }
 
