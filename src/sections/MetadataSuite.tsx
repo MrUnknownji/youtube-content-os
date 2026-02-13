@@ -1,6 +1,6 @@
 // Module 5: Metadata Suite - Titles, Descriptions, Thumbnails
 import { useState, useEffect, useRef } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -115,8 +115,10 @@ export function MetadataSuite() {
   
   const [selectedThumbnail, setSelectedThumbnail] = useState<string>('');
   const [generateThumbnail, setGenerateThumbnail] = useState(false);
-  const [generatedThumbnailUrl, setGeneratedThumbnailUrl] = useState<string>('');
+  const [generatedThumbnails, setGeneratedThumbnails] = useState<Record<string, string>>({});
+  const [generatingThumbnailId, setGeneratingThumbnailId] = useState<string | null>(null);
   const [localIsGenerating, setLocalIsGenerating] = useState(false);
+  const [thumbnailPrompts, setThumbnailPrompts] = useState<Record<string, string>>({});
   const [copiedTitle, setCopiedTitle] = useState(false);
 
   const ai = getAIGateway();
@@ -274,6 +276,10 @@ Return as valid JSON array with fields: id, title, description, layout, textOver
   };
 
   const generateThumbnailImage = async (concept: typeof MOCK_THUMBNAIL_CONCEPTS[0]) => {
+    if (generatingThumbnailId === concept.id) return;
+    
+    setGeneratingThumbnailId(concept.id);
+    
     try {
       const prompt = `Create a YouTube thumbnail: ${concept.description}. 
 Layout: ${concept.layout}. 
@@ -281,13 +287,40 @@ Text: ${concept.textOverlay}.
 Style: ${concept.colorScheme}. 
 High quality, eye-catching, professional.`;
 
+      // Store the prompt for regenerate functionality
+      setThumbnailPrompts(prev => ({ ...prev, [concept.id]: prompt }));
+
       const response = await ai.generate({ prompt, type: 'image' });
       if (response.success) {
-        setGeneratedThumbnailUrl(response.data);
+        setGeneratedThumbnails(prev => ({ ...prev, [concept.id]: response.data }));
         toast.success('Thumbnail preview generated');
       }
     } catch (error) {
       toast.error('Failed to generate thumbnail');
+    } finally {
+      setGeneratingThumbnailId(null);
+    }
+  };
+
+  const regenerateThumbnailImage = async (conceptId: string) => {
+    const concept = thumbnailConcepts.find(c => c.id === conceptId);
+    const storedPrompt = thumbnailPrompts[conceptId];
+    
+    if (!concept || !storedPrompt) return;
+    if (generatingThumbnailId === conceptId) return;
+    
+    setGeneratingThumbnailId(conceptId);
+    
+    try {
+      const response = await ai.generate({ prompt: storedPrompt, type: 'image' });
+      if (response.success) {
+        setGeneratedThumbnails(prev => ({ ...prev, [conceptId]: response.data }));
+        toast.success('Thumbnail regenerated');
+      }
+    } catch (error) {
+      toast.error('Failed to regenerate thumbnail');
+    } finally {
+      setGeneratingThumbnailId(null);
     }
   };
 
@@ -600,7 +633,7 @@ High quality, eye-catching, professional.`;
                   className="data-[state=checked]:bg-primary"
                 />
                 <Label htmlFor="gen-thumb" className="text-sm text-muted-foreground">
-                  Generate Preview
+                  Generate Images
                 </Label>
               </div>
               <Button
@@ -611,7 +644,7 @@ High quality, eye-catching, professional.`;
                 className="border-border"
               >
                 <RefreshCw className={`mr-2 h-4 w-4 ${localIsGenerating ? 'animate-spin' : ''}`} />
-                Refresh
+                Refresh Concepts
               </Button>
             </div>
           </div>
@@ -621,77 +654,112 @@ High quality, eye-catching, professional.`;
             onValueChange={setSelectedThumbnail}
             className="grid grid-cols-1 md:grid-cols-2 gap-4"
           >
-            {thumbnailConcepts.map((concept) => (
-              <Card
-                key={concept.id}
-                className={`
-                  cursor-pointer transition-all
-                  ${selectedThumbnail === concept.id 
-                    ? 'ring-2 ring-primary' 
-                    : 'hover:shadow-md'}
-                `}
-                onClick={() => setSelectedThumbnail(concept.id)}
-              >
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-3">
-                    <RadioGroupItem value={concept.id} id={concept.id} className="mt-1" />
-                    <div className="flex-1">
-                      <h4 className="font-sans font-medium text-foreground">{concept.title}</h4>
-                      <p className="text-sm text-muted-foreground mt-1">{concept.description}</p>
-                      <div className="mt-3 space-y-2">
-                        <div className="text-xs">
-                          <span className="text-muted-foreground">Layout: </span>
-                          <span className="text-foreground">{concept.layout}</span>
+            {thumbnailConcepts.map((concept) => {
+              const isGenerating = generatingThumbnailId === concept.id;
+              const hasGeneratedImage = !!generatedThumbnails[concept.id];
+              
+              return (
+                <Card
+                  key={concept.id}
+                  className={`
+                    cursor-pointer transition-all overflow-hidden
+                    ${selectedThumbnail === concept.id 
+                      ? 'ring-2 ring-primary' 
+                      : 'hover:shadow-md'}
+                  `}
+                  onClick={() => setSelectedThumbnail(concept.id)}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-3">
+                      <RadioGroupItem value={concept.id} id={concept.id} className="mt-1" />
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-sans font-medium text-foreground">{concept.title}</h4>
+                        <p className="text-sm text-muted-foreground mt-1">{concept.description}</p>
+                        
+                        {/* Concept Details */}
+                        <div className="mt-3 space-y-1.5">
+                          <div className="text-xs">
+                            <span className="text-muted-foreground">Layout: </span>
+                            <span className="text-foreground">{concept.layout}</span>
+                          </div>
+                          <div className="text-xs">
+                            <span className="text-muted-foreground">Text: </span>
+                            <span className="font-mono bg-muted px-1 rounded">{concept.textOverlay}</span>
+                          </div>
+                          <div className="text-xs">
+                            <span className="text-muted-foreground">Colors: </span>
+                            <span className="text-foreground">{concept.colorScheme}</span>
+                          </div>
                         </div>
-                        <div className="text-xs">
-                          <span className="text-muted-foreground">Text: </span>
-                          <span className="font-mono bg-muted px-1 rounded">{concept.textOverlay}</span>
-                        </div>
-                        <div className="text-xs">
-                          <span className="text-muted-foreground">Colors: </span>
-                          <span className="text-foreground">{concept.colorScheme}</span>
-                        </div>
-                      </div>
-                      {generateThumbnail && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="mt-3 w-full"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            generateThumbnailImage(concept);
-                          }}
-                        >
-                          <Wand2 className="mr-2 h-3 w-3" />
-                          Generate Preview
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </RadioGroup>
 
-          {generatedThumbnailUrl && (
-            <Card className="overflow-hidden">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-sans">Generated Preview</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="max-w-md mx-auto rounded-lg overflow-hidden border border-border">
-                  <ImageViewer 
-                    src={generatedThumbnailUrl} 
-                    alt="Generated thumbnail preview"
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          )}
+                        {/* Generate Button */}
+                        {generateThumbnail && (
+                          <div className="mt-3">
+                            {!hasGeneratedImage ? (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="w-full"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  generateThumbnailImage(concept);
+                                }}
+                                disabled={isGenerating}
+                              >
+                                {isGenerating ? (
+                                  <RefreshCw className="mr-2 h-3 w-3 animate-spin" />
+                                ) : (
+                                  <Wand2 className="mr-2 h-3 w-3" />
+                                )}
+                                {isGenerating ? 'Generating...' : 'Generate Preview'}
+                              </Button>
+                            ) : (
+                              <div className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="flex-1"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    regenerateThumbnailImage(concept.id);
+                                  }}
+                                  disabled={isGenerating}
+                                >
+                                  {isGenerating ? (
+                                    <RefreshCw className="mr-2 h-3 w-3 animate-spin" />
+                                  ) : (
+                                    <RefreshCw className="mr-2 h-3 w-3" />
+                                  )}
+                                  Regenerate
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Generated Image Preview - Similar to StoryboardEngine */}
+                        {hasGeneratedImage && (
+                          <div 
+                            className="mt-3 border rounded-md overflow-hidden"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <ImageViewer
+                              src={generatedThumbnails[concept.id]} 
+                              alt={`${concept.title} preview`}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </RadioGroup>
 
           <Button
             onClick={handleFinalizeMetadata}
-            disabled={!canFinalize || localIsGenerating}
+            disabled={!canFinalize || localIsGenerating || generatingThumbnailId !== null}
             className="w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-full py-6"
           >
             <Check className="mr-2 h-5 w-5" />

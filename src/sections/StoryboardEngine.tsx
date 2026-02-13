@@ -263,6 +263,7 @@ Return as valid JSON array. Ensure total duration matches script.`;
 
   const generateSceneImage = async (scene: StoryboardScene) => {
     if (!generateImages) return;
+    if (generatingScene === scene.sceneNumber) return;
     
     setGeneratingScene(scene.sceneNumber);
     
@@ -283,6 +284,34 @@ Return as valid JSON array. Ensure total duration matches script.`;
       }
     } catch (error) {
       toast.error('Failed to generate image');
+    } finally {
+      setGeneratingScene(null);
+    }
+  };
+
+  const regenerateSceneImage = async (scene: StoryboardScene) => {
+    if (!generateImages) return;
+    if (generatingScene === scene.sceneNumber) return;
+    
+    setGeneratingScene(scene.sceneNumber);
+    
+    try {
+      const response = await ai.generate({
+        prompt: scene.imagePrompt,
+        type: 'image'
+      });
+      
+      if (response.success) {
+        const updatedScenes = scenes.map(s => 
+          s.sceneNumber === scene.sceneNumber 
+            ? { ...s, generatedImageUrl: response.data }
+            : s
+        );
+        setScenes(updatedScenes);
+        toast.success(`Scene ${scene.sceneNumber} image regenerated`);
+      }
+    } catch (error) {
+      toast.error('Failed to regenerate image');
     } finally {
       setGeneratingScene(null);
     }
@@ -598,23 +627,39 @@ Return as valid JSON array. Ensure total duration matches script.`;
                             </p>
                           </div>
                           {generateImages && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="mt-2 w-full"
-                              onClick={() => generateSceneImage(scene)}
-                              disabled={isGeneratingImage || !!scene.generatedImageUrl}
-                            >
-                              {isGeneratingImage ? (
-                                <RefreshCw className="mr-2 h-3 w-3 animate-spin" />
-                              ) : scene.generatedImageUrl ? (
-                                <CheckCheck className="mr-2 h-3 w-3" />
+                            <div className="mt-2">
+                              {!scene.generatedImageUrl ? (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="w-full"
+                                  onClick={() => generateSceneImage(scene)}
+                                  disabled={isGeneratingImage}
+                                >
+                                  {isGeneratingImage ? (
+                                    <RefreshCw className="mr-2 h-3 w-3 animate-spin" />
+                                  ) : (
+                                    <Wand2 className="mr-2 h-3 w-3" />
+                                  )}
+                                  {isGeneratingImage ? 'Generating...' : 'Generate Preview'}
+                                </Button>
                               ) : (
-                                <Wand2 className="mr-2 h-3 w-3" />
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="w-full"
+                                  onClick={() => regenerateSceneImage(scene)}
+                                  disabled={isGeneratingImage}
+                                >
+                                  {isGeneratingImage ? (
+                                    <RefreshCw className="mr-2 h-3 w-3 animate-spin" />
+                                  ) : (
+                                    <RefreshCw className="mr-2 h-3 w-3" />
+                                  )}
+                                  {isGeneratingImage ? 'Generating...' : 'Regenerate'}
+                                </Button>
                               )}
-                              {isGeneratingImage ? 'Generating...' : 
-                               scene.generatedImageUrl ? 'Generated' : 'Generate Preview'}
-                            </Button>
+                            </div>
                           )}
                         </div>
 
