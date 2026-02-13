@@ -4,6 +4,7 @@
   "description": "Express.js backend for YouTube Content OS",
   "main": "index.js",
   "scripts": {
+    "test": "jest",
     "start": "node index.js",
     "dev": "nodemon index.js"
   },
@@ -17,6 +18,8 @@
     "multer": "^1.4.5-lts.1"
   },
   "devDependencies": {
-    "nodemon": "^3.0.1"
+    "jest": "^29.7.0",
+    "nodemon": "^3.0.1",
+    "supertest": "^7.0.0"
   }
 }
