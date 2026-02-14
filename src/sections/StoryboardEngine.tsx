@@ -25,7 +25,8 @@ import {
   ChevronsDown,
   HelpCircle,
   Clapperboard,
-  Sparkles
+  Sparkles,
+  Download
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useProjectStore } from '@/state/projectStore';
@@ -432,6 +433,37 @@ Return as valid JSON array. Ensure total duration matches script.`;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const exportScenes = () => {
+    if (!currentProject || scenes.length === 0) {
+      toast.error('No scenes to export');
+      return;
+    }
+
+    const exportData = {
+      id: currentProject.id,
+      selectedStoryboard: {
+        scenes: scenes.map(s => ({
+          sceneNumber: s.sceneNumber,
+          timestampStart: s.timestampStart,
+          timestampEnd: s.timestampEnd,
+          duration: s.duration,
+          type: s.type,
+          scriptSegment: s.scriptSegment,
+          visualDescription: s.visualDescription
+        }))
+      }
+    };
+
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `scenes-${currentProject.id}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success('Scenes exported successfully');
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -481,6 +513,15 @@ Return as valid JSON array. Ensure total duration matches script.`;
           >
             <RefreshCw className={`mr-2 h-4 w-4 ${localIsGenerating ? 'animate-spin' : ''}`} />
             Regenerate
+          </Button>
+          <Button
+            onClick={exportScenes}
+            disabled={scenes.length === 0}
+            variant="outline"
+            className="border-border"
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Export
           </Button>
         </div>
       </div>
