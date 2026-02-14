@@ -70,7 +70,7 @@ function App() {
     // Check prerequisites for moving forward
     const prerequisites: Record<WorkflowStage, () => boolean> = {
       ingestion: () => true,
-      topics: () => currentProject.dataSource !== null,
+      topics: () => true,
       script: () => currentProject.selectedTopic !== null,
       storyboard: () => currentProject.selectedScript !== null,
       metadata: () => currentProject.selectedStoryboard !== null,

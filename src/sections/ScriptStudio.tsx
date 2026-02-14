@@ -23,6 +23,7 @@ import { useProjectStore } from '@/state/projectStore';
 import { useAIGeneration } from '@/hooks/useAIGeneration';
 import { getAIGateway } from '@/services/ai-provider';
 import { getDatabaseGateway } from '@/services/db-adapter';
+import { Skeleton } from '@/components/ui/skeleton';
 import type { ScriptVariant, ScriptFormat, PinnedItem } from '@/types';
 
 const MOCK_SCRIPTS: Record<ScriptFormat, ScriptVariant[]> = {
@@ -446,115 +447,182 @@ Return as valid JSON array with exactly these fields:
         </Button>
       </div>
 
-      {/* Script Tabs */}
-      <Tabs value={activeScript} onValueChange={setActiveScript}>
-        <TabsList className="bg-muted">
-          {scripts.map((script, i) => (
-            <TabsTrigger 
-              key={script.id} 
-              value={script.id}
-              className="data-[state=active]:bg-background"
+      {/* Script Tabs / Empty State / Loading */}
+      {localIsGenerating && scripts.length === 0 ? (
+        <div className="space-y-4">
+          <TabsList className="bg-muted w-full">
+            <TabsTrigger value="loading-1" className="data-[state=active]:bg-background flex-1">Variant A</TabsTrigger>
+            <TabsTrigger value="loading-2" className="data-[state=active]:bg-background flex-1">Variant B</TabsTrigger>
+            <TabsTrigger value="loading-3" className="data-[state=active]:bg-background flex-1">Variant C</TabsTrigger>
+          </TabsList>
+          <Card className="bg-card border-border rounded-lg shadow-sm">
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-4">
+                <Skeleton className="h-5 w-20 rounded-full" />
+                <Skeleton className="h-5 w-16 rounded-full" />
+                <Skeleton className="h-5 w-20 rounded-full" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="bg-muted/50 rounded-md p-4 space-y-3">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-5/6" />
+                <Skeleton className="h-4 w-2/3" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-4/5" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      ) : scripts.length === 0 ? (
+        <Card className="bg-card border-border border-dashed rounded-lg">
+          <CardContent className="py-16 flex flex-col items-center justify-center text-center">
+            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+              <FileText className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <h3 className="text-lg font-semibold font-sans text-foreground mb-2">
+              No scripts generated yet
+            </h3>
+            <p className="text-muted-foreground max-w-md mb-6">
+              Select a topic first, then generate scripts for your video. Choose between Facecam or Faceless format.
+            </p>
+            <div className="flex items-center gap-4 mb-4">
+              <span className="text-sm text-muted-foreground">Facecam</span>
+              <Switch
+                checked={format === 'faceless'}
+                onCheckedChange={(checked) => setFormat(checked ? 'faceless' : 'facecam')}
+                className="data-[state=checked]:bg-primary"
+              />
+              <span className="text-sm text-muted-foreground">Faceless</span>
+            </div>
+            <Button
+              onClick={handleGenerateScripts}
+              disabled={localIsGenerating || !currentProject?.selectedTopic}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground"
             >
-              Variant {String.fromCharCode(65 + i)}
-            </TabsTrigger>
-          ))}
-        </TabsList>
+              <Sparkles className="mr-2 h-4 w-4" />
+              Generate Scripts
+            </Button>
+            {!currentProject?.selectedTopic && (
+              <p className="text-sm text-muted-foreground mt-2">
+                Select a topic in the previous step first
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      ) : (
+        <Tabs value={activeScript} onValueChange={setActiveScript}>
+          <TabsList className="bg-muted">
+            {scripts.map((script, i) => (
+              <TabsTrigger 
+                key={script.id} 
+                value={script.id}
+                className="data-[state=active]:bg-background"
+              >
+                Variant {String.fromCharCode(65 + i)}
+              </TabsTrigger>
+            ))}
+          </TabsList>
 
-        {scripts.map((script) => (
-          <TabsContent key={script.id} value={script.id} className="mt-4">
-            <Card className="bg-card border-border rounded-lg shadow-sm">
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <Badge variant="outline" className="gap-1">
-                      <FileText className="h-3 w-3" />
-                      {script.wordCount} words
-                    </Badge>
-                    <Badge variant="outline" className="gap-1">
-                      <Clock className="h-3 w-3" />
-                      {script.estimatedDuration}
-                    </Badge>
-                    <Badge variant="outline" className="gap-1">
-                      <Play className="h-3 w-3" />
-                      {script.format}
-                    </Badge>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => pinScript(script)}
-                      className="text-muted-foreground hover:text-primary"
-                    >
-                      <Bookmark className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => {
-                        setEditedContent(script.content);
-                        setIsEditing(true);
-                      }}
-                      className="text-muted-foreground"
-                    >
-                      <Edit3 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {isEditing && activeScript === script.id ? (
-                  <div className="space-y-4">
-                    <Textarea
-                      value={editedContent}
-                      onChange={(e) => setEditedContent(e.target.value)}
-                      className="min-h-[400px] font-mono text-sm bg-input border-input"
-                    />
+          {scripts.map((script) => (
+            <TabsContent key={script.id} value={script.id} className="mt-4">
+              <Card className="bg-card border-border rounded-lg shadow-sm">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <Badge variant="outline" className="gap-1">
+                        <FileText className="h-3 w-3" />
+                        {script.wordCount} words
+                      </Badge>
+                      <Badge variant="outline" className="gap-1">
+                        <Clock className="h-3 w-3" />
+                        {script.estimatedDuration}
+                      </Badge>
+                      <Badge variant="outline" className="gap-1">
+                        <Play className="h-3 w-3" />
+                        {script.format}
+                      </Badge>
+                    </div>
                     <div className="flex gap-2">
                       <Button
-                        onClick={() => {
-                          const updated = scripts.map(s => 
-                            s.id === script.id ? { ...s, content: editedContent } : s
-                          );
-                          setScripts(updated);
-                          setIsEditing(false);
-                          toast.success('Script updated');
-                        }}
-                        className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => pinScript(script)}
+                        className="text-muted-foreground hover:text-primary"
                       >
-                        Save Changes
+                        <Bookmark className="h-4 w-4" />
                       </Button>
                       <Button
-                        variant="outline"
-                        onClick={() => setIsEditing(false)}
-                        className="border-border"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          setEditedContent(script.content);
+                          setIsEditing(true);
+                        }}
+                        className="text-muted-foreground"
                       >
-                        Cancel
+                        <Edit3 className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="bg-muted/50 rounded-md p-4 max-h-[500px] overflow-auto">
-                      <pre className="font-mono text-sm whitespace-pre-wrap text-foreground">
-                        {script.content}
-                      </pre>
+                </CardHeader>
+                <CardContent>
+                  {isEditing && activeScript === script.id ? (
+                    <div className="space-y-4">
+                      <Textarea
+                        value={editedContent}
+                        onChange={(e) => setEditedContent(e.target.value)}
+                        className="min-h-[400px] font-mono text-sm bg-input border-input"
+                      />
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={() => {
+                            const updated = scripts.map(s => 
+                              s.id === script.id ? { ...s, content: editedContent } : s
+                            );
+                            setScripts(updated);
+                            setIsEditing(false);
+                            toast.success('Script updated');
+                          }}
+                          className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                        >
+                          Save Changes
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => setIsEditing(false)}
+                          className="border-border"
+                        >
+                          Cancel
+                        </Button>
+                      </div>
                     </div>
-                    <Button
-                      onClick={() => handleFinalizeScript(script)}
-                      disabled={localIsGenerating}
-                      className="w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-full"
-                    >
-                      <Check className="mr-2 h-4 w-4" />
-                      Finalize This Script
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-        ))}
-      </Tabs>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="bg-muted/50 rounded-md p-4 max-h-[500px] overflow-auto">
+                        <pre className="font-mono text-sm whitespace-pre-wrap text-foreground">
+                          {script.content}
+                        </pre>
+                      </div>
+                      <Button
+                        onClick={() => handleFinalizeScript(script)}
+                        disabled={localIsGenerating}
+                        className="w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-full"
+                      >
+                        <Check className="mr-2 h-4 w-4" />
+                        Finalize This Script
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          ))}
+        </Tabs>
+      )}
 
       {/* Format Tips */}
       <Card className="bg-secondary/50 border-secondary">

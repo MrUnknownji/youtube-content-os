@@ -23,7 +23,9 @@ import {
   CheckCheck,
   ChevronsUp,
   ChevronsDown,
-  HelpCircle
+  HelpCircle,
+  Clapperboard,
+  Sparkles
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useProjectStore } from '@/state/projectStore';
@@ -32,6 +34,7 @@ import { getAIGateway } from '@/services/ai-provider';
 import { getDatabaseGateway } from '@/services/db-adapter';
 import { ImageViewer } from '@/components/ImageViewer';
 import { getAISettings } from '@/components/SettingsDialog';
+import { Skeleton } from '@/components/ui/skeleton';
 import type { StoryboardScene, PinnedItem } from '@/types';
 
 const MOCK_SCENES: StoryboardScene[] = [
@@ -505,214 +508,272 @@ Return as valid JSON array. Ensure total duration matches script.`;
         </div>
       </div>
 
-      {/* Timeline */}
-      <div className="space-y-3">
-        {scenes.map((scene) => {
-          const Icon = TYPE_ICONS[scene.type as keyof typeof TYPE_ICONS] || HelpCircle;
-          const isExpanded = expandedScenes.has(scene.sceneNumber);
-          const isGeneratingImage = generatingScene === scene.sceneNumber;
-          
-          return (
-            <Collapsible
-              key={scene.sceneNumber}
-              open={isExpanded}
-              onOpenChange={() => toggleScene(scene.sceneNumber)}
+      {/* Timeline / Empty State / Loading */}
+      {localIsGenerating && scenes.length === 0 ? (
+        <div className="space-y-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Card key={i} className="bg-card border-border rounded-lg shadow-sm">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-4">
+                  <Skeleton className="w-10 h-10 rounded-full flex-shrink-0" />
+                  <Skeleton className="h-5 w-20 rounded-full flex-shrink-0" />
+                  <Skeleton className="h-4 w-24 flex-shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-3/4" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : scenes.length === 0 ? (
+        <Card className="bg-card border-border border-dashed rounded-lg">
+          <CardContent className="py-16 flex flex-col items-center justify-center text-center">
+            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+              <Clapperboard className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <h3 className="text-lg font-semibold font-sans text-foreground mb-2">
+              No storyboard scenes yet
+            </h3>
+            <p className="text-muted-foreground max-w-md mb-6">
+              Finalize a script first, then generate a visual storyboard with scene-by-scene planning.
+            </p>
+            <div className="flex items-center gap-4 mb-4">
+              <Label className="text-sm text-muted-foreground">Enable Image Generation</Label>
+              <Switch
+                checked={generateImages}
+                onCheckedChange={setGenerateImages}
+                id="generate-images-empty"
+                className="data-[state=checked]:bg-primary"
+              />
+            </div>
+            <Button
+              onClick={handleGenerateStoryboard}
+              disabled={localIsGenerating || !currentProject?.selectedScript}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground"
             >
-              <Card className={`
-                bg-card border-border rounded-lg shadow-sm transition-all duration-200
-                ${isExpanded ? 'ring-1 ring-primary' : 'hover:shadow-md'}
-              `}>
-                {/* Header - Always visible */}
-                <CollapsibleTrigger asChild>
-                  <CardContent className="p-4 cursor-pointer">
-                    <div className="flex items-center gap-4">
-                      {/* Scene Number */}
-                      <div className="flex-shrink-0 w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-                        <span className="text-sm font-mono font-medium">{scene.sceneNumber}</span>
-                      </div>
-                      
-                      {/* Type Badge */}
-                      <Badge className={`${TYPE_COLORS[scene.type]} gap-1 flex-shrink-0`}>
-                        <Icon className="h-3 w-3" />
-                        {scene.type}
-                      </Badge>
-                      
-                      {/* Timestamp */}
-                      <div className="flex items-center gap-1 text-sm text-muted-foreground flex-shrink-0">
-                        <Clock className="h-3 w-3" />
-                        {scene.timestampStart} - {scene.timestampEnd}
-                      </div>
-                      
-                      {/* Script Preview */}
-                      <p className="flex-1 text-sm text-foreground truncate">
-                        {scene.scriptSegment}
-                      </p>
-                      
-                      {/* Expand Icon */}
-                      {isExpanded ? (
-                        <ChevronUp className="h-4 w-4 text-muted-foreground" />
-                      ) : (
-                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                      )}
-                    </div>
-                  </CardContent>
-                </CollapsibleTrigger>
-
-                {/* Expanded Content */}
-                <CollapsibleContent>
-                  <CardContent className="pt-0 pb-4 px-4">
-                    <div className="border-t border-border pt-4" />
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {/* Left Column - Details */}
-                      <div className="space-y-4">
-                        <div>
-                          <h4 className="text-sm font-medium text-foreground mb-1 flex items-center gap-2">
-                            <Camera className="h-4 w-4 text-muted-foreground" />
-                            Visual Description
-                          </h4>
-                          <p className="text-sm text-muted-foreground bg-muted/50 rounded-md p-3">
-                            {scene.visualDescription}
+              <Sparkles className="mr-2 h-4 w-4" />
+              Generate Storyboard
+            </Button>
+            {!currentProject?.selectedScript && (
+              <p className="text-sm text-muted-foreground mt-2">
+                Finalize a script in the previous step first
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+          <div className="space-y-3">
+            {scenes.map((scene) => {
+              const Icon = TYPE_ICONS[scene.type as keyof typeof TYPE_ICONS] || HelpCircle;
+              const isExpanded = expandedScenes.has(scene.sceneNumber);
+              const isGeneratingImage = generatingScene === scene.sceneNumber;
+              
+              return (
+                <Collapsible
+                  key={scene.sceneNumber}
+                  open={isExpanded}
+                  onOpenChange={() => toggleScene(scene.sceneNumber)}
+                >
+                  <Card className={`
+                    bg-card border-border rounded-lg shadow-sm transition-all duration-200
+                    ${isExpanded ? 'ring-1 ring-primary' : 'hover:shadow-md'}
+                  `}>
+                    {/* Header - Always visible */}
+                    <CollapsibleTrigger asChild>
+                      <CardContent className="p-4 cursor-pointer">
+                        <div className="flex items-center gap-4">
+                          {/* Scene Number */}
+                          <div className="flex-shrink-0 w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                            <span className="text-sm font-mono font-medium">{scene.sceneNumber}</span>
+                          </div>
+                          
+                          {/* Type Badge */}
+                          <Badge className={`${TYPE_COLORS[scene.type]} gap-1 flex-shrink-0`}>
+                            <Icon className="h-3 w-3" />
+                            {scene.type}
+                          </Badge>
+                          
+                          {/* Timestamp */}
+                          <div className="flex items-center gap-1 text-sm text-muted-foreground flex-shrink-0">
+                            <Clock className="h-3 w-3" />
+                            {scene.timestampStart} - {scene.timestampEnd}
+                          </div>
+                          
+                          {/* Script Preview */}
+                          <p className="flex-1 text-sm text-foreground truncate">
+                            {scene.scriptSegment}
                           </p>
+                          
+                          {/* Expand Icon */}
+                          {isExpanded ? (
+                            <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                          )}
                         </div>
+                      </CardContent>
+                    </CollapsibleTrigger>
 
-                        {scene.recordingInstructions && (
-                          <div>
-                            <h4 className="text-sm font-medium text-foreground mb-1 flex items-center gap-2">
-                              <Monitor className="h-4 w-4 text-muted-foreground" />
-                              Recording Instructions
-                            </h4>
-                            <p className="text-sm text-muted-foreground bg-muted/50 rounded-md p-3 font-mono">
-                              {scene.recordingInstructions}
-                            </p>
+                    {/* Expanded Content */}
+                    <CollapsibleContent>
+                      <CardContent className="pt-0 pb-4 px-4">
+                        <div className="border-t border-border pt-4" />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {/* Left Column - Details */}
+                          <div className="space-y-4">
+                            <div>
+                              <h4 className="text-sm font-medium text-foreground mb-1 flex items-center gap-2">
+                                <Camera className="h-4 w-4 text-muted-foreground" />
+                                Visual Description
+                              </h4>
+                              <p className="text-sm text-muted-foreground bg-muted/50 rounded-md p-3">
+                                {scene.visualDescription}
+                              </p>
+                            </div>
+
+                            {scene.recordingInstructions && (
+                              <div>
+                                <h4 className="text-sm font-medium text-foreground mb-1 flex items-center gap-2">
+                                  <Monitor className="h-4 w-4 text-muted-foreground" />
+                                  Recording Instructions
+                                </h4>
+                                <p className="text-sm text-muted-foreground bg-muted/50 rounded-md p-3 font-mono">
+                                  {scene.recordingInstructions}
+                                </p>
+                              </div>
+                            )}
+
+                            {scene.audioNote && (
+                              <div>
+                                <h4 className="text-sm font-medium text-foreground mb-1 flex items-center gap-2">
+                                  <Music className="h-4 w-4 text-muted-foreground" />
+                                  Audio Note
+                                </h4>
+                                <p className="text-sm text-muted-foreground">{scene.audioNote}</p>
+                              </div>
+                            )}
                           </div>
-                        )}
 
-                        {scene.audioNote && (
-                          <div>
-                            <h4 className="text-sm font-medium text-foreground mb-1 flex items-center gap-2">
-                              <Music className="h-4 w-4 text-muted-foreground" />
-                              Audio Note
-                            </h4>
-                            <p className="text-sm text-muted-foreground">{scene.audioNote}</p>
-                          </div>
-                        )}
-                      </div>
+                          {/* Right Column - Image Prompt */}
+                          <div className="space-y-4">
+                            <div>
+                              <div className="flex items-center justify-between mb-1">
+                                <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
+                                  <Wand2 className="h-4 w-4 text-muted-foreground" />
+                                  Image Generation Prompt
+                                </h4>
+                                <div className="flex gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6"
+                                    onClick={() => copyPrompt(scene)}
+                                  >
+                                    {copiedPrompt === scene.sceneNumber ? (
+                                      <CheckCheck className="h-3 w-3 text-primary" />
+                                    ) : (
+                                      <Copy className="h-3 w-3" />
+                                    )}
+                                  </Button>
+                                </div>
+                              </div>
+                              <div className="bg-secondary rounded-md p-3">
+                                <p className="text-sm font-mono text-secondary-foreground">
+                                  {scene.imagePrompt}
+                                </p>
+                              </div>
+                              {generateImages && (
+                                <div className="mt-2">
+                                  {!scene.generatedImageUrl ? (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="w-full"
+                                      onClick={() => generateSceneImage(scene)}
+                                      disabled={isGeneratingImage}
+                                    >
+                                      {isGeneratingImage ? (
+                                        <RefreshCw className="mr-2 h-3 w-3 animate-spin" />
+                                      ) : (
+                                        <Wand2 className="mr-2 h-3 w-3" />
+                                      )}
+                                      {isGeneratingImage ? 'Generating...' : 'Generate Preview'}
+                                    </Button>
+                                  ) : (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="w-full"
+                                      onClick={() => regenerateSceneImage(scene)}
+                                      disabled={isGeneratingImage}
+                                    >
+                                      {isGeneratingImage ? (
+                                        <RefreshCw className="mr-2 h-3 w-3 animate-spin" />
+                                      ) : (
+                                        <RefreshCw className="mr-2 h-3 w-3" />
+                                      )}
+                                      {isGeneratingImage ? 'Generating...' : 'Regenerate'}
+                                    </Button>
+                                  )}
+                                </div>
+                              )}
+                            </div>
 
-                      {/* Right Column - Image Prompt */}
-                      <div className="space-y-4">
-                        <div>
-                          <div className="flex items-center justify-between mb-1">
-                            <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
-                              <Wand2 className="h-4 w-4 text-muted-foreground" />
-                              Image Generation Prompt
-                            </h4>
-                            <div className="flex gap-1">
+                            {/* Generated Image Preview */}
+                            {scene.generatedImageUrl && (
+                              <div className="border rounded-md overflow-hidden">
+                                <ImageViewer
+                                  src={scene.generatedImageUrl} 
+                                  alt={`Scene ${scene.sceneNumber} preview`}
+                                />
+                              </div>
+                            )}
+
+                            {/* Actions */}
+                            <div className="flex gap-2">
                               <Button
                                 variant="ghost"
-                                size="icon"
-                                className="h-6 w-6"
-                                onClick={() => copyPrompt(scene)}
+                                size="sm"
+                                onClick={() => pinScene(scene)}
+                                className="flex-1"
                               >
-                                {copiedPrompt === scene.sceneNumber ? (
-                                  <CheckCheck className="h-3 w-3 text-primary" />
-                                ) : (
-                                  <Copy className="h-3 w-3" />
-                                )}
+                                <Bookmark className="mr-2 h-3 w-3" />
+                                Pin Scene
                               </Button>
                             </div>
                           </div>
-                          <div className="bg-secondary rounded-md p-3">
-                            <p className="text-sm font-mono text-secondary-foreground">
-                              {scene.imagePrompt}
-                            </p>
-                          </div>
-                          {generateImages && (
-                            <div className="mt-2">
-                              {!scene.generatedImageUrl ? (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="w-full"
-                                  onClick={() => generateSceneImage(scene)}
-                                  disabled={isGeneratingImage}
-                                >
-                                  {isGeneratingImage ? (
-                                    <RefreshCw className="mr-2 h-3 w-3 animate-spin" />
-                                  ) : (
-                                    <Wand2 className="mr-2 h-3 w-3" />
-                                  )}
-                                  {isGeneratingImage ? 'Generating...' : 'Generate Preview'}
-                                </Button>
-                              ) : (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="w-full"
-                                  onClick={() => regenerateSceneImage(scene)}
-                                  disabled={isGeneratingImage}
-                                >
-                                  {isGeneratingImage ? (
-                                    <RefreshCw className="mr-2 h-3 w-3 animate-spin" />
-                                  ) : (
-                                    <RefreshCw className="mr-2 h-3 w-3" />
-                                  )}
-                                  {isGeneratingImage ? 'Generating...' : 'Regenerate'}
-                                </Button>
-                              )}
-                            </div>
-                          )}
                         </div>
+                      </CardContent>
+                    </CollapsibleContent>
+                  </Card>
+                </Collapsible>
+              );
+            })}
+          </div>
 
-                        {/* Generated Image Preview */}
-                        {scene.generatedImageUrl && (
-                          <div className="border rounded-md overflow-hidden">
-                            <ImageViewer
-                              src={scene.generatedImageUrl} 
-                              alt={`Scene ${scene.sceneNumber} preview`}
-                            />
-                          </div>
-                        )}
-
-                        {/* Actions */}
-                        <div className="flex gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => pinScene(scene)}
-                            className="flex-1"
-                          >
-                            <Bookmark className="mr-2 h-3 w-3" />
-                            Pin Scene
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </CollapsibleContent>
-              </Card>
-            </Collapsible>
-          );
-        })}
-      </div>
-
-      {/* Finalize Button */}
-      <Button
-        onClick={handleFinalizeStoryboard}
-        disabled={localIsGenerating || isFinalizing}
-        className="w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-full py-6"
-      >
-        {isFinalizing ? (
-          <>
-            <RefreshCw className="mr-2 h-5 w-5 animate-spin" />
-            Uploading Images...
-          </>
-        ) : (
-          <>
-            <Check className="mr-2 h-5 w-5" />
-            Finalize Storyboard
-          </>
-        )}
-      </Button>
+          {/* Finalize Button */}
+          <Button
+            onClick={handleFinalizeStoryboard}
+            disabled={localIsGenerating || isFinalizing}
+            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-full py-6"
+          >
+            {isFinalizing ? (
+              <>
+                <RefreshCw className="mr-2 h-5 w-5 animate-spin" />
+                Uploading Images...
+              </>
+            ) : (
+              <>
+                <Check className="mr-2 h-5 w-5" />
+                Finalize Storyboard
+              </>
+            )}
+          </Button>
+        </>
+      )}
     </div>
   );
 }

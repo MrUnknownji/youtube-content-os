@@ -10,13 +10,15 @@ import {
   Check, 
   RefreshCw, 
   Sparkles, 
-  TrendingUp
+  TrendingUp,
+  Lightbulb
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useProjectStore } from '@/state/projectStore';
 import { useAIGeneration } from '@/hooks/useAIGeneration';
 import { getAIGateway } from '@/services/ai-provider';
 import { getDatabaseGateway } from '@/services/db-adapter';
+import { Skeleton } from '@/components/ui/skeleton';
 import type { TopicSuggestion, PinnedItem } from '@/types';
 
 const MOCK_TOPICS: TopicSuggestion[] = [
@@ -52,20 +54,18 @@ export function TopicIntelligence() {
 
   const generationStarted = useRef(false);
 
-  // Auto-generate if empty and arrived at this stage
   useEffect(() => {
     if (
       currentStage === 'topics' && 
       topics.length === 0 && 
       ai.isAvailable() && 
-      currentProject?.dataSource && 
       !localIsGenerating && 
       !generationStarted.current
     ) {
       generationStarted.current = true;
       handleGenerateTopics();
     }
-  }, [currentStage, topics.length, currentProject?.dataSource, localIsGenerating]);
+  }, [currentStage, topics.length, localIsGenerating]);
 
   const handleGenerateTopics = async () => {
     if (localIsGenerating) return;
@@ -74,7 +74,7 @@ export function TopicIntelligence() {
     try {
       const dataContext = currentProject?.dataSource ? 
         `Based on this data: ${JSON.stringify(currentProject.dataSource.rawData).slice(0, 500)}...` : 
-        'Generate video topic suggestions';
+        `Generate video topic suggestions for: ${preferences || 'general YouTube content'}`;
       
       const prompt = `${dataContext}
 
@@ -224,63 +224,121 @@ Return as valid JSON array with these exact fields:
         </CardContent>
       </Card>
 
-      {/* Topics Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {topics.map((topic, index) => (
-          <Card 
-            key={topic.id} 
-            className={`
-              bg-card border-border rounded-lg shadow-sm transition-all duration-200
-              ${finalizedTopicId === topic.id ? 'ring-2 ring-primary' : 'hover:shadow-md'}
-            `}
-          >
-            <CardContent className="p-5">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xs font-mono text-muted-foreground">
-                      #{String(index + 1).padStart(2, '0')}
-                    </span>
-                    <Badge className={`${getScoreColor(topic.predictedScore)} text-xs`}>
-                      <TrendingUp className="mr-1 h-3 w-3" />
-                      {topic.predictedScore}
-                    </Badge>
+      {/* Topics Grid / Empty State / Loading */}
+      {localIsGenerating && topics.length === 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Card key={i} className="bg-card border-border rounded-lg shadow-sm">
+              <CardContent className="p-5">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Skeleton className="h-4 w-8" />
+                    <Skeleton className="h-5 w-16 rounded-full" />
                   </div>
-                  <h3 className="font-sans font-semibold text-foreground leading-tight mb-2">
-                    {topic.title}
-                  </h3>
-                  <p className="text-sm text-muted-foreground line-clamp-2">
-                    {topic.rationale}
-                  </p>
+                  <Skeleton className="h-5 w-full" />
+                  <Skeleton className="h-5 w-3/4" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-2/3" />
                 </div>
-                <div className="flex flex-col gap-2">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => isPinned(topic.id) ? unpinTopic(topic.id) : pinTopic(topic)}
-                    className={isPinned(topic.id) ? 'text-primary' : 'text-muted-foreground'}
-                  >
-                    <Bookmark className={`h-4 w-4 ${isPinned(topic.id) ? 'fill-current' : ''}`} />
-                  </Button>
-                  <Button
-                    size="icon"
-                    onClick={() => handleFinalizeTopic(topic)}
-                    disabled={localIsGenerating || finalizedTopicId === topic.id}
-                    className={`
-                      rounded-full
-                      ${finalizedTopicId === topic.id 
-                        ? 'bg-primary/50 text-primary-foreground' 
-                        : 'bg-primary hover:bg-primary/90 text-primary-foreground'}
-                    `}
-                  >
-                    <Check className="h-4 w-4" />
-                  </Button>
-                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : topics.length === 0 ? (
+        <Card className="bg-card border-border border-dashed rounded-lg">
+          <CardContent className="py-16 flex flex-col items-center justify-center text-center">
+            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+              <Lightbulb className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <h3 className="text-lg font-semibold font-sans text-foreground mb-2">
+              No topic suggestions yet
+            </h3>
+            <p className="text-muted-foreground max-w-md mb-6">
+              Enter what kind of content you want to create and click Generate to get AI-powered video topic suggestions.
+            </p>
+            <div className="w-full max-w-lg">
+              <div className="flex gap-3">
+                <Input
+                  placeholder="e.g., tutorials about time management, productivity hacks..."
+                  value={preferences}
+                  onChange={(e) => setPreferences(e.target.value)}
+                  className="bg-input border-input flex-1"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !localIsGenerating) {
+                      handleGenerateTopics();
+                    }
+                  }}
+                />
+                <Button
+                  onClick={handleGenerateTopics}
+                  disabled={localIsGenerating}
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                >
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Generate Topics
+                </Button>
               </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {topics.map((topic, index) => (
+            <Card 
+              key={topic.id} 
+              className={`
+                bg-card border-border rounded-lg shadow-sm transition-all duration-200
+                ${finalizedTopicId === topic.id ? 'ring-2 ring-primary' : 'hover:shadow-md'}
+              `}
+            >
+              <CardContent className="p-5">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-xs font-mono text-muted-foreground">
+                        #{String(index + 1).padStart(2, '0')}
+                      </span>
+                      <Badge className={`${getScoreColor(topic.predictedScore)} text-xs`}>
+                        <TrendingUp className="mr-1 h-3 w-3" />
+                        {topic.predictedScore}
+                      </Badge>
+                    </div>
+                    <h3 className="font-sans font-semibold text-foreground leading-tight mb-2">
+                      {topic.title}
+                    </h3>
+                    <p className="text-sm text-muted-foreground line-clamp-2">
+                      {topic.rationale}
+                    </p>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => isPinned(topic.id) ? unpinTopic(topic.id) : pinTopic(topic)}
+                      className={isPinned(topic.id) ? 'text-primary' : 'text-muted-foreground'}
+                    >
+                      <Bookmark className={`h-4 w-4 ${isPinned(topic.id) ? 'fill-current' : ''}`} />
+                    </Button>
+                    <Button
+                      size="icon"
+                      onClick={() => handleFinalizeTopic(topic)}
+                      disabled={localIsGenerating || finalizedTopicId === topic.id}
+                      className={`
+                        rounded-full
+                        ${finalizedTopicId === topic.id 
+                          ? 'bg-primary/50 text-primary-foreground' 
+                          : 'bg-primary hover:bg-primary/90 text-primary-foreground'}
+                      `}
+                    >
+                      <Check className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
 
     </div>

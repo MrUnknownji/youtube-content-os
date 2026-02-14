@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
 import { 
   Upload, 
@@ -77,6 +78,37 @@ export function Navigation({ currentStage, onStageChange }: NavigationProps) {
     return 'locked';
   };
 
+  const getLockedReason = (stageId: WorkflowStage): string => {
+    if (!currentProject) return 'Create a project first';
+    
+    const stageLabels: Record<string, string> = {
+      ingestion: 'Data',
+      topics: 'Topics', 
+      script: 'Script',
+      storyboard: 'Visuals',
+      metadata: 'Meta'
+    };
+    
+    const stageOrder = ['ingestion', 'topics', 'script', 'storyboard', 'metadata', 'complete'];
+    const currentIndex = stageOrder.indexOf(currentStage);
+    
+    if (stageId === 'script' && !currentProject.selectedTopic) {
+      return 'Select a topic first';
+    }
+    if (stageId === 'storyboard' && !currentProject.selectedScript) {
+      return 'Finalize a script first';
+    }
+    if (stageId === 'metadata' && !currentProject.selectedStoryboard) {
+      return 'Finalize storyboard first';
+    }
+    if (stageId === 'complete' && !currentProject.selectedMetadata) {
+      return 'Complete metadata first';
+    }
+    
+    const prevStage = stageOrder[currentIndex];
+    return `Complete ${stageLabels[prevStage]} first`;
+  };
+
   const handleStageClick = (stageId: WorkflowStage) => {
     if (isGenerating) return;
     const status = getStageStatus(stageId);
@@ -128,7 +160,7 @@ export function Navigation({ currentStage, onStageChange }: NavigationProps) {
               const Icon = stage.icon;
               const status = getStageStatus(stage.id);
               
-              return (
+              const buttonContent = (
                 <button
                   key={stage.id}
                   onClick={() => handleStageClick(stage.id)}
@@ -165,6 +197,21 @@ export function Navigation({ currentStage, onStageChange }: NavigationProps) {
                   )}
                 </button>
               );
+              
+              if (status === 'locked') {
+                return (
+                  <Tooltip key={stage.id}>
+                    <TooltipTrigger asChild>
+                      {buttonContent}
+                    </TooltipTrigger>
+                    <TooltipContent side="right">
+                      {getLockedReason(stage.id)}
+                    </TooltipContent>
+                  </Tooltip>
+                );
+              }
+              
+              return buttonContent;
             })}
           </nav>
           
@@ -301,7 +348,7 @@ export function Navigation({ currentStage, onStageChange }: NavigationProps) {
                 const Icon = stage.icon;
                 const status = getStageStatus(stage.id);
                 
-                return (
+                const mobileButton = (
                   <button
                     key={stage.id}
                     onClick={() => handleStageClick(stage.id)}
@@ -320,8 +367,15 @@ export function Navigation({ currentStage, onStageChange }: NavigationProps) {
                     <Icon className="h-4 w-4" />
                     <span>{stage.label}</span>
                     {status === 'completed' && <Check className="ml-auto h-4 w-4" />}
+                    {status === 'locked' && (
+                      <span className="ml-auto text-xs text-muted-foreground">
+                        {getLockedReason(stage.id)}
+                      </span>
+                    )}
                   </button>
                 );
+                
+                return mobileButton;
               })}
               <div className="pt-2 mt-2 border-t border-border">
                 <p className="text-xs text-muted-foreground mb-1 px-3">Tools</p>
