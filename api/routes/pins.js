@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
 const PinnedItem = require('../models/PinnedItem');
+const checkDbConnection = require('../middleware/checkDb');
 
 // Connect to MongoDB if configured
 if (process.env.MONGODB_URI) {
@@ -11,18 +12,12 @@ if (process.env.MONGODB_URI) {
     .catch(err => console.warn('⚠️ MongoDB connection failed:', err.message));
 }
 
+// Apply middleware to check DB connection for all routes
+router.use(checkDbConnection);
+
 // GET /api/pins - Get all pinned items for user
 router.get('/', async (req, res) => {
   try {
-    if (!process.env.MONGODB_URI) {
-      return res.status(503).json({
-        success: false,
-        data: null,
-        fallbackUsed: true,
-        message: 'MongoDB not configured'
-      });
-    }
-
     const userId = req.query.userId || 'personal_user';
     const items = await PinnedItem.find({ userId }).sort({ pinnedAt: -1 });
 
@@ -45,15 +40,6 @@ router.get('/', async (req, res) => {
 // POST /api/pins - Add new pinned item
 router.post('/', async (req, res) => {
   try {
-    if (!process.env.MONGODB_URI) {
-      return res.status(503).json({
-        success: false,
-        data: null,
-        fallbackUsed: true,
-        message: 'MongoDB not configured'
-      });
-    }
-
     const item = new PinnedItem({
       ...req.body,
       userId: req.body.userId || 'personal_user'
@@ -79,15 +65,6 @@ router.post('/', async (req, res) => {
 // DELETE /api/pins/:id - Remove pinned item
 router.delete('/:id', async (req, res) => {
   try {
-    if (!process.env.MONGODB_URI) {
-      return res.status(503).json({
-        success: false,
-        data: null,
-        fallbackUsed: true,
-        message: 'MongoDB not configured'
-      });
-    }
-
     const item = await PinnedItem.findByIdAndDelete(req.params.id);
     if (!item) {
       return res.status(404).json({
