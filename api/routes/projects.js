@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
 const Project = require('../models/Project');
+const checkDbConnection = require('../middleware/checkDb');
 
 // Connect to MongoDB if configured
 if (process.env.MONGODB_URI) {
@@ -11,18 +12,12 @@ if (process.env.MONGODB_URI) {
     .catch(err => console.warn('⚠️ MongoDB connection failed:', err.message));
 }
 
+// Apply middleware to check DB connection for all routes
+router.use(checkDbConnection);
+
 // GET /api/projects - Get all projects
 router.get('/', async (req, res) => {
   try {
-    if (!process.env.MONGODB_URI) {
-      return res.status(503).json({
-        success: false,
-        data: null,
-        fallbackUsed: true,
-        message: 'MongoDB not configured'
-      });
-    }
-
     const projects = await Project.find().sort({ updatedAt: -1 });
     res.json({
       success: true,
@@ -43,15 +38,6 @@ router.get('/', async (req, res) => {
 // GET /api/projects/:id - Get single project
 router.get('/:id', async (req, res) => {
   try {
-    if (!process.env.MONGODB_URI) {
-      return res.status(503).json({
-        success: false,
-        data: null,
-        fallbackUsed: true,
-        message: 'MongoDB not configured'
-      });
-    }
-
     const project = await Project.findById(req.params.id);
     if (!project) {
       return res.status(404).json({
@@ -81,15 +67,6 @@ router.get('/:id', async (req, res) => {
 // POST /api/projects - Create new project
 router.post('/', async (req, res) => {
   try {
-    if (!process.env.MONGODB_URI) {
-      return res.status(503).json({
-        success: false,
-        data: null,
-        fallbackUsed: true,
-        message: 'MongoDB not configured'
-      });
-    }
-
     const project = new Project(req.body);
     await project.save();
 
@@ -112,15 +89,6 @@ router.post('/', async (req, res) => {
 // PATCH /api/projects/:id - Update project
 router.patch('/:id', async (req, res) => {
   try {
-    if (!process.env.MONGODB_URI) {
-      return res.status(503).json({
-        success: false,
-        data: null,
-        fallbackUsed: true,
-        message: 'MongoDB not configured'
-      });
-    }
-
     const project = await Project.findByIdAndUpdate(
       req.params.id,
       { ...req.body, updatedAt: new Date() },
@@ -155,15 +123,6 @@ router.patch('/:id', async (req, res) => {
 // POST /api/projects/:id/finalize - Handle finalization logic
 router.post('/:id/finalize', async (req, res) => {
   try {
-    if (!process.env.MONGODB_URI) {
-      return res.status(503).json({
-        success: false,
-        data: null,
-        fallbackUsed: true,
-        message: 'MongoDB not configured'
-      });
-    }
-
     const { stage, data } = req.body;
     const project = await Project.findById(req.params.id);
 
@@ -222,15 +181,6 @@ router.post('/:id/finalize', async (req, res) => {
 // DELETE /api/projects/:id - Delete project
 router.delete('/:id', async (req, res) => {
   try {
-    if (!process.env.MONGODB_URI) {
-      return res.status(503).json({
-        success: false,
-        data: null,
-        fallbackUsed: true,
-        message: 'MongoDB not configured'
-      });
-    }
-
     const project = await Project.findByIdAndDelete(req.params.id);
     if (!project) {
       return res.status(404).json({
