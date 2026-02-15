@@ -1,4 +1,5 @@
 // AI Provider Service - Simplified for Gemini-only mode
+import { MOCK_TITLES } from '@/data/mock-metadata';
 import type { AIConfig, AIGenerateRequest, AIGenerateResponse, AIProvider } from '@/types';
 
 interface AISettings {
@@ -198,7 +199,7 @@ class AIGateway {
     // Generate contextual mock content based on prompt
     let mockData = '';
     
-    if (prompt.includes('topic') || prompt.includes('title')) {
+    if (prompt.includes('topic')) {
       // Generate 10 topic suggestions
       const topics = MOCK_TOPIC_TITLES.map((title, i) => ({
         id: `topic-${i + 1}`,
@@ -230,14 +231,7 @@ class AIGateway {
         .replace(/{implication}/g, 'your environment matters more than your motivation')
         .replace(/{demonstration_footage}/g, 'person working at desk with phone away');
     } else if (prompt.includes('title')) {
-      const titles = [
-        "I Tried This for 30 Days. The Results Shocked Me.",
-        "The Productivity Method That Actually Works (Science-Backed)",
-        "Why You're Still Procrastinating (And the Real Fix)",
-        "This Changed How I Work Forever",
-        "Stop Doing This If You Want to Be Productive"
-      ];
-      mockData = JSON.stringify(titles);
+      mockData = JSON.stringify(MOCK_TITLES);
     } else if (prompt.includes('description')) {
       mockData = `In this video, I break down the science-backed productivity system that helped me double my output while working fewer hours.
 
