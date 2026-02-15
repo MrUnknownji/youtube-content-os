@@ -13,6 +13,7 @@ import { MetadataSuite } from '@/sections/MetadataSuite';
 import { ShortsGenerator } from '@/sections/ShortsGenerator';
 import { DirectImageGenerator } from '@/sections/DirectImageGenerator';
 import { CreatorProfileSetup } from '@/sections/CreatorProfile';
+import { ProjectComplete } from '@/sections/ProjectComplete';
 import { useProjectStore } from '@/state/projectStore';
 import type { WorkflowStage } from '@/types';
 
@@ -74,7 +75,8 @@ function App() {
       metadata: () => currentProject.selectedStoryboard !== null,
       shorts: () => currentProject.selectedMetadata !== null,
       complete: () => currentProject.selectedMetadata !== null,
-      imagegen: () => true
+      imagegen: () => true,
+      profile: () => true
     };
 
     if (prerequisites[stage]()) {
@@ -99,14 +101,11 @@ function App() {
       case 'shorts':
         return <ShortsGenerator />;
       case 'complete':
-        return (
-          <div className="space-y-6">
-            <ShortsGenerator />
-            <CreatorProfileSetup />
-          </div>
-        );
+        return <ProjectComplete />;
       case 'imagegen':
         return <DirectImageGenerator />;
+      case 'profile':
+        return <CreatorProfileSetup />;
       default:
         return <DataIngestion />;
     }
@@ -167,6 +166,7 @@ function App() {
               {currentStage === 'shorts' && 'Shorts Extractor'}
               {currentStage === 'complete' && 'Project Complete'}
               {currentStage === 'imagegen' && 'Image Generator'}
+              {currentStage === 'profile' && 'Creator Profile'}
             </h1>
           </div>
 

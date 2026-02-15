@@ -21,7 +21,8 @@ import {
   ChevronRight,
   Plus,
   Image as ImageIcon,
-  Scissors
+  Scissors,
+  User
 } from 'lucide-react';
 import { useProjectStore } from '@/state/projectStore';
 import { PinnedItemsSidebar } from '@/sections/PinnedItemsSidebar';
@@ -46,6 +47,7 @@ const STAGES: { id: WorkflowStage; label: string; icon: React.ElementType }[] = 
 
 const EXTRA_SECTIONS: { id: WorkflowStage; label: string; icon: React.ElementType }[] = [
   { id: 'imagegen', label: 'Image Gen', icon: ImageIcon },
+  { id: 'profile', label: 'Profile', icon: User },
 ];
 
 const STATUS_COLORS = {
@@ -63,8 +65,8 @@ export function Navigation({ currentStage, onStageChange }: NavigationProps) {
   const pinnedCount = pinnedItems.length;
 
   const getStageStatus = (stageId: WorkflowStage) => {
-    if (stageId === 'imagegen') {
-      return currentStage === 'imagegen' ? 'active' : 'available';
+    if (stageId === 'imagegen' || stageId === 'profile') {
+      return currentStage === stageId ? 'active' : 'available';
     }
 
     if (!currentProject) return 'locked';

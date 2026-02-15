@@ -245,11 +245,13 @@ Return as valid JSON array with exactly these fields:
       {/* Script Tabs / Empty State / Loading */}
       {localIsGenerating && scripts.length === 0 ? (
         <div className="space-y-4">
-          <TabsList className="bg-muted w-full">
-            <TabsTrigger value="loading-1" className="data-[state=active]:bg-background flex-1">Variant A</TabsTrigger>
-            <TabsTrigger value="loading-2" className="data-[state=active]:bg-background flex-1">Variant B</TabsTrigger>
-            <TabsTrigger value="loading-3" className="data-[state=active]:bg-background flex-1">Variant C</TabsTrigger>
-          </TabsList>
+          <Tabs value="loading">
+            <TabsList className="bg-muted w-full">
+              <TabsTrigger value="loading-1" className="data-[state=active]:bg-background flex-1">Variant A</TabsTrigger>
+              <TabsTrigger value="loading-2" className="data-[state=active]:bg-background flex-1">Variant B</TabsTrigger>
+              <TabsTrigger value="loading-3" className="data-[state=active]:bg-background flex-1">Variant C</TabsTrigger>
+            </TabsList>
+          </Tabs>
           <Card className="bg-card border-border rounded-lg shadow-sm">
             <CardHeader className="pb-3">
               <div className="flex items-center gap-4">
