@@ -33,7 +33,7 @@ const projectSchema = new mongoose.Schema({
     thumbnailLayout: String
   },
   createdAt: { type: Date, default: Date.now },
-  updatedAt: { type: Date, default: Date.now }
+  updatedAt: { type: Date, default: Date.now, index: true }
 });
 
 // Update timestamp on save
