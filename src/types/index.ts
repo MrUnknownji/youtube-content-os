@@ -77,6 +77,15 @@ export interface VideoMetadata {
   thumbnailLayout?: string;
 }
 
+export interface ThumbnailConcept {
+  id: string;
+  title: string;
+  description: string;
+  layout: string;
+  textOverlay: string;
+  colorScheme: string;
+}
+
 // Project Types
 export interface Project {
   id: string;
@@ -90,7 +99,7 @@ export interface Project {
   topicSuggestions?: TopicSuggestion[]; // Persist suggestions
   scriptVariants?: ScriptVariant[]; // Persist drafts
   titleSuggestions?: string[]; // Persist title options
-  thumbnailConcepts?: any[]; // Persist thumbnail concepts
+  thumbnailConcepts?: ThumbnailConcept[]; // Persist thumbnail concepts
   selectedScript: {
     id: string;
     content: string;
