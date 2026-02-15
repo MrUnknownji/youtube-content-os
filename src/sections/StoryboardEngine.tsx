@@ -362,14 +362,16 @@ Return as valid JSON array. Ensure total duration matches script.`;
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-cloudinary-cloud-name': settings.cloudinaryCloudName,
-          'x-cloudinary-api-key': settings.cloudinaryApiKey,
-          'x-cloudinary-api-secret': settings.cloudinaryApiSecret
         },
         body: JSON.stringify({
           image: imageData,
           filename: `scene-${sceneNumber}-${Date.now()}`,
-          metadata: { sceneNumber }
+          metadata: { sceneNumber },
+          cloudinaryConfig: {
+            cloudName: settings.cloudinaryCloudName,
+            apiKey: settings.cloudinaryApiKey,
+            apiSecret: settings.cloudinaryApiSecret
+          }
         })
       });
 

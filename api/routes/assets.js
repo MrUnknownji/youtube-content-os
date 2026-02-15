@@ -32,12 +32,13 @@ router.post("/", async (req, res) => {
     }
 
     const cloudName =
-      req.headers["x-cloudinary-cloud-name"] ||
+      (req.body.cloudinaryConfig && req.body.cloudinaryConfig.cloudName) ||
       process.env.CLOUDINARY_CLOUD_NAME;
     const apiKey =
-      req.headers["x-cloudinary-api-key"] || process.env.CLOUDINARY_API_KEY;
+      (req.body.cloudinaryConfig && req.body.cloudinaryConfig.apiKey) ||
+      process.env.CLOUDINARY_API_KEY;
     const apiSecret =
-      req.headers["x-cloudinary-api-secret"] ||
+      (req.body.cloudinaryConfig && req.body.cloudinaryConfig.apiSecret) ||
       process.env.CLOUDINARY_API_SECRET;
 
     if (cloudName && apiKey && apiSecret) {
