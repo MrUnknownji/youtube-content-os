@@ -116,9 +116,11 @@ export function DirectImageGenerator() {
           size
         };
 
-        const updated = [newImage, ...generatedImages].slice(0, 50);
-        setGeneratedImages(updated);
-        saveImages(updated);
+        setGeneratedImages(prev => {
+          const updated = [newImage, ...prev].slice(0, 50);
+          saveImages(updated);
+          return updated;
+        });
         setSelectedImage(newImage);
       }
     } catch (error) {

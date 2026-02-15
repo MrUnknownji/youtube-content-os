@@ -291,12 +291,11 @@ Return as valid JSON array. Total duration should match script length (approxima
     const response = await generateImage(scene.imagePrompt, `scene-${scene.sceneNumber}`);
     
     if (response?.success) {
-      const updatedScenes = scenes.map(s => 
+      setScenes(prev => prev.map(s => 
         s.sceneNumber === scene.sceneNumber 
           ? { ...s, generatedImageUrl: response.data }
           : s
-      );
-      setScenes(updatedScenes);
+      ));
     }
   };
 
@@ -307,12 +306,11 @@ Return as valid JSON array. Total duration should match script length (approxima
     const response = await generateImage(scene.imagePrompt, `scene-${scene.sceneNumber}`);
     
     if (response?.success) {
-      const updatedScenes = scenes.map(s => 
+      setScenes(prev => prev.map(s => 
         s.sceneNumber === scene.sceneNumber 
           ? { ...s, generatedImageUrl: response.data }
           : s
-      );
-      setScenes(updatedScenes);
+      ));
     }
   };
 
