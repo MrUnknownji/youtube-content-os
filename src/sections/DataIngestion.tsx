@@ -11,14 +11,14 @@ import { useDropzone } from 'react-dropzone';
 import Papa from 'papaparse';
 import { toast } from 'sonner';
 import { useProjectStore } from '@/state/projectStore';
-import { useAIGeneration } from '@/hooks/useAIGeneration';
+import { useTextGeneration } from '@/hooks/useAIGeneration';
 import { getStorageGateway } from '@/services/storage-adapter';
 import { getAIGateway } from '@/services/ai-provider';
 import type { DashboardData, DataSource } from '@/types';
 
 export function DataIngestion() {
   const { currentProject, setCurrentStage, updateProject } = useProjectStore();
-  const { generate } = useAIGeneration();
+  const { generate: generateText } = useTextGeneration();
 
   const [activeTab, setActiveTab] = useState('images');
   const [uploadedImages, setUploadedImages] = useState<{ file: File; preview: string; id?: string }[]>([]);
@@ -103,7 +103,7 @@ export function DataIngestion() {
       
       if (ai.isAvailable() && base64Images.length > 0) {
         toast.info('Analyzing images...');
-        const response = await generate({
+        const response = await generateText({
           prompt: "Analyze these YouTube analytics screenshots. Extracted insights?",
           type: 'text',
           images: base64Images

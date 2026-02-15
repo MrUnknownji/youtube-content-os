@@ -30,7 +30,8 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useProjectStore } from '@/state/projectStore';
-import { useAIGeneration } from '@/hooks/useAIGeneration';
+import { useTextGeneration } from '@/hooks/useAIGeneration';
+import { useImageGenerationQueue } from '@/hooks/useImageGenerationQueue';
 import { getAIGateway } from '@/services/ai-provider';
 import { getDatabaseGateway } from '@/services/db-adapter';
 import { ImageViewer } from '@/components/ImageViewer';
@@ -117,7 +118,8 @@ const isValidType = (type: string): type is keyof typeof TYPE_ICONS => {
 
 export function StoryboardEngine() {
   const { currentProject, updateProject, finalizeStoryboard, currentStage } = useProjectStore();
-  const { generate } = useAIGeneration();
+  const { generate: generateText } = useTextGeneration();
+  const { generateImage, isGenerating: isImageGenerating } = useImageGenerationQueue();
   
   const [scenes, setScenes] = useState<StoryboardScene[]>(() => {
     if (currentProject?.selectedStoryboard?.scenes?.length) return currentProject.selectedStoryboard.scenes;
@@ -127,7 +129,6 @@ export function StoryboardEngine() {
   const [expandedScenes, setExpandedScenes] = useState<Set<number>>(new Set([1]));
   const [localIsGenerating, setLocalIsGenerating] = useState(false);
   const [generateImages, setGenerateImages] = useState(false);
-  const [generatingScene, setGeneratingScene] = useState<number | null>(null);
   const [copiedPrompt, setCopiedPrompt] = useState<number | null>(null);
   const [isFinalizing, setIsFinalizing] = useState(false);
 
@@ -220,7 +221,7 @@ IMPORTANT:
 
 Return as valid JSON array. Total duration should match script length (approximately 3-4 minutes for a typical video).`;
 
-      const response = await generate({ prompt, type: 'text', format: 'json' });
+      const response = await generateText({ prompt, type: 'text', format: 'json' });
       
       if (response.success) {
         try {
@@ -285,57 +286,33 @@ Return as valid JSON array. Total duration should match script length (approxima
 
   const generateSceneImage = async (scene: StoryboardScene) => {
     if (!generateImages) return;
-    if (generatingScene === scene.sceneNumber) return;
+    if (isImageGenerating(`scene-${scene.sceneNumber}`)) return;
     
-    setGeneratingScene(scene.sceneNumber);
+    const response = await generateImage(scene.imagePrompt, `scene-${scene.sceneNumber}`);
     
-    try {
-      const response = await ai.generate({
-        prompt: scene.imagePrompt,
-        type: 'image'
-      });
-      
-      if (response.success) {
-        const updatedScenes = scenes.map(s => 
-          s.sceneNumber === scene.sceneNumber 
-            ? { ...s, generatedImageUrl: response.data }
-            : s
-        );
-        setScenes(updatedScenes);
-        toast.success(`Scene ${scene.sceneNumber} image generated`);
-      }
-    } catch (error) {
-      toast.error('Failed to generate image');
-    } finally {
-      setGeneratingScene(null);
+    if (response?.success) {
+      const updatedScenes = scenes.map(s => 
+        s.sceneNumber === scene.sceneNumber 
+          ? { ...s, generatedImageUrl: response.data }
+          : s
+      );
+      setScenes(updatedScenes);
     }
   };
 
   const regenerateSceneImage = async (scene: StoryboardScene) => {
     if (!generateImages) return;
-    if (generatingScene === scene.sceneNumber) return;
+    if (isImageGenerating(`scene-${scene.sceneNumber}`)) return;
     
-    setGeneratingScene(scene.sceneNumber);
+    const response = await generateImage(scene.imagePrompt, `scene-${scene.sceneNumber}`);
     
-    try {
-      const response = await ai.generate({
-        prompt: scene.imagePrompt,
-        type: 'image'
-      });
-      
-      if (response.success) {
-        const updatedScenes = scenes.map(s => 
-          s.sceneNumber === scene.sceneNumber 
-            ? { ...s, generatedImageUrl: response.data }
-            : s
-        );
-        setScenes(updatedScenes);
-        toast.success(`Scene ${scene.sceneNumber} image regenerated`);
-      }
-    } catch (error) {
-      toast.error('Failed to regenerate image');
-    } finally {
-      setGeneratingScene(null);
+    if (response?.success) {
+      const updatedScenes = scenes.map(s => 
+        s.sceneNumber === scene.sceneNumber 
+          ? { ...s, generatedImageUrl: response.data }
+          : s
+      );
+      setScenes(updatedScenes);
     }
   };
 
@@ -630,7 +607,7 @@ Return as valid JSON array. Total duration should match script length (approxima
             {scenes.map((scene) => {
               const Icon = TYPE_ICONS[scene.type as keyof typeof TYPE_ICONS] || HelpCircle;
               const isExpanded = expandedScenes.has(scene.sceneNumber);
-              const isGeneratingImage = generatingScene === scene.sceneNumber;
+              const isGeneratingImage = isImageGenerating(`scene-${scene.sceneNumber}`);
               
               return (
                 <Collapsible

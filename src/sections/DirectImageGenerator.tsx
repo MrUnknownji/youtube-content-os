@@ -29,7 +29,7 @@ import {
   Clock
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useAIGeneration } from '@/hooks/useAIGeneration';
+import { useImageGenerationQueue } from '@/hooks/useImageGenerationQueue';
 import { getAIGateway } from '@/services/ai-provider';
 import { getAISettings } from '@/components/SettingsDialog';
 import {
@@ -78,7 +78,7 @@ export function DirectImageGenerator() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(true);
 
-  const { generate, isGenerating } = useAIGeneration();
+  const { generateImage, isAnyGenerating } = useImageGenerationQueue();
   const ai = getAIGateway();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -104,12 +104,9 @@ export function DirectImageGenerator() {
     }
 
     try {
-      const response = await generate({
-        prompt: prompt.trim(),
-        type: 'image'
-      });
+      const response = await generateImage(prompt.trim(), `direct-img-${Date.now()}`);
 
-      if (response.success) {
+      if (response?.success) {
         const newImage: GeneratedImage = {
           id: `img-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           prompt: prompt.trim(),
@@ -119,13 +116,10 @@ export function DirectImageGenerator() {
           size
         };
 
-        const updated = [newImage, ...generatedImages].slice(0, 50); // Keep last 50
+        const updated = [newImage, ...generatedImages].slice(0, 50);
         setGeneratedImages(updated);
         saveImages(updated);
         setSelectedImage(newImage);
-        toast.success('Image generated successfully');
-      } else {
-        toast.error('Failed to generate image');
       }
     } catch (error) {
       console.error('Image generation error:', error);
@@ -305,10 +299,10 @@ export function DirectImageGenerator() {
 
             <Button
               onClick={handleGenerate}
-              disabled={isGenerating || !isAIEnabled || !isImageGenEnabled || !prompt.trim()}
+              disabled={isAnyGenerating || !isAIEnabled || !isImageGenEnabled || !prompt.trim()}
               className="bg-primary hover:bg-primary/90 text-primary-foreground min-w-[140px]"
             >
-              {isGenerating ? (
+              {isAnyGenerating ? (
                 <>
                   <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
                   Generating...

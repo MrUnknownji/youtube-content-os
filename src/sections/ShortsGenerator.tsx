@@ -32,7 +32,8 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useProjectStore } from '@/state/projectStore';
-import { useAIGeneration } from '@/hooks/useAIGeneration';
+import { useTextGeneration } from '@/hooks/useAIGeneration';
+import { useImageGenerationQueue } from '@/hooks/useImageGenerationQueue';
 import { getAIGateway } from '@/services/ai-provider';
 import { getDatabaseGateway } from '@/services/db-adapter';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -115,7 +116,8 @@ const MOCK_SHORTS: ShortsExtract[] = [
 
 export function ShortsGenerator() {
   const { currentProject, updateProject, addPinnedItem, currentStage } = useProjectStore();
-  const { generate } = useAIGeneration();
+  const { generate: generateText } = useTextGeneration();
+  const { generateImage, isGenerating: isImageGenerating } = useImageGenerationQueue();
 
   const [shorts, setShorts] = useState<ShortsExtract[]>(() => {
     if (currentProject?.shortsExtracts && currentProject.shortsExtracts.length > 0) {
@@ -129,7 +131,6 @@ export function ShortsGenerator() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [generateThumbnails, setGenerateThumbnails] = useState(false);
   const [generatedThumbnails, setGeneratedThumbnails] = useState<Record<string, string>>({});
-  const [generatingThumbnailId, setGeneratingThumbnailId] = useState<string | null>(null);
 
   const ai = getAIGateway();
   const db = getDatabaseGateway();
@@ -205,7 +206,7 @@ For each short, return as JSON:
 
 Return as valid JSON array of exactly 3 shorts. Make them genuinely viral-worthy.`;
 
-      const response = await generate({ prompt, type: 'text', format: 'json' });
+      const response = await generateText({ prompt, type: 'text', format: 'json' });
 
       if (response.success) {
         try {
@@ -253,13 +254,10 @@ Return as valid JSON array of exactly 3 shorts. Make them genuinely viral-worthy
   };
 
   const generateThumbnailImage = async (short: ShortsExtract) => {
-    if (generatingThumbnailId === short.id) return;
+    if (isImageGenerating(short.id)) return;
     
-    setGeneratingThumbnailId(short.id);
+    const prompt = `Create a viral YouTube Shorts thumbnail (9:16 vertical aspect ratio): ${short.suggestedThumbnail}
     
-    try {
-      const prompt = `Create a viral YouTube Shorts thumbnail (9:16 vertical aspect ratio): ${short.suggestedThumbnail}
-      
 Style requirements:
 - High contrast, eye-catching design
 - Bold, readable text overlay
@@ -269,27 +267,18 @@ Style requirements:
 
 The thumbnail should make viewers instantly curious and want to click.`;
 
-      const response = await ai.generate({ prompt, type: 'image' });
-      if (response.success) {
-        setGeneratedThumbnails(prev => ({ ...prev, [short.id]: response.data }));
-        toast.success('Thumbnail generated');
-      }
-    } catch {
-      toast.error('Failed to generate thumbnail');
-    } finally {
-      setGeneratingThumbnailId(null);
+    const response = await generateImage(prompt, short.id);
+    if (response?.success) {
+      setGeneratedThumbnails(prev => ({ ...prev, [short.id]: response.data }));
     }
   };
 
   const regenerateThumbnailImage = async (shortId: string) => {
     const short = shorts.find(s => s.id === shortId);
-    if (!short || generatingThumbnailId === shortId) return;
+    if (!short || isImageGenerating(shortId)) return;
     
-    setGeneratingThumbnailId(shortId);
+    const prompt = `Create a viral YouTube Shorts thumbnail (9:16 vertical aspect ratio): ${short.suggestedThumbnail}
     
-    try {
-      const prompt = `Create a viral YouTube Shorts thumbnail (9:16 vertical aspect ratio): ${short.suggestedThumbnail}
-      
 Style requirements:
 - High contrast, eye-catching design
 - Bold, readable text overlay
@@ -297,15 +286,9 @@ Style requirements:
 - Vibrant colors that pop on mobile screens
 - Optimized for small screen viewing`;
 
-      const response = await ai.generate({ prompt, type: 'image' });
-      if (response.success) {
-        setGeneratedThumbnails(prev => ({ ...prev, [shortId]: response.data }));
-        toast.success('Thumbnail regenerated');
-      }
-    } catch {
-      toast.error('Failed to regenerate thumbnail');
-    } finally {
-      setGeneratingThumbnailId(null);
+    const response = await generateImage(prompt, shortId);
+    if (response?.success) {
+      setGeneratedThumbnails(prev => ({ ...prev, [shortId]: response.data }));
     }
   };
 
@@ -509,7 +492,7 @@ ${short.bestPostingTime}
           {shorts.map((short) => {
             const TypeIcon = getTypeIcon(short.contentType);
             const isExpanded = expandedShort === short.id;
-            const isGeneratingThumbnail = generatingThumbnailId === short.id;
+            const isGeneratingThumbnail = isImageGenerating(short.id);
             const hasThumbnail = !!generatedThumbnails[short.id];
 
             return (

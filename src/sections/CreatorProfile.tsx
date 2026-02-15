@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useProjectStore } from '@/state/projectStore';
-import { useAIGeneration } from '@/hooks/useAIGeneration';
+import { useTextGeneration } from '@/hooks/useAIGeneration';
 import type { CreatorProfile } from '@/types';
 
 const DEFAULT_PROFILE: CreatorProfile = {
@@ -42,7 +42,7 @@ const DEFAULT_PROFILE: CreatorProfile = {
 
 export function CreatorProfileSetup() {
   const { currentProject, updateProject } = useProjectStore();
-  const { generate } = useAIGeneration();
+  const { generate: generateText } = useTextGeneration();
 
   const [profile, setProfile] = useState<CreatorProfile>(() => {
     return currentProject?.creatorProfile || DEFAULT_PROFILE;
@@ -84,7 +84,7 @@ Suggest a complete content strategy in JSON format:
 
 Return only valid JSON.`;
 
-      const response = await generate({ prompt, type: 'text', format: 'json' });
+      const response = await generateText({ prompt, type: 'text', format: 'json' });
       
       if (response.success) {
         try {

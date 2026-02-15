@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useProjectStore } from '@/state/projectStore';
-import { useAIGeneration } from '@/hooks/useAIGeneration';
+import { useTextGeneration } from '@/hooks/useAIGeneration';
 import { getAIGateway } from '@/services/ai-provider';
 import { getDatabaseGateway } from '@/services/db-adapter';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -29,7 +29,7 @@ import { MOCK_SCRIPTS } from '@/data/mock-scripts';
 
 export function ScriptStudio() {
   const { currentProject, currentStage, updateProject, finalizeScript, addPinnedItem } = useProjectStore();
-  const { generate } = useAIGeneration();
+  const { generate: generateText } = useTextGeneration();
 
   const [format, setFormat] = useState<ScriptFormat>('faceless');
   const [scripts, setScripts] = useState<ScriptVariant[]>(() => {
@@ -132,7 +132,7 @@ Return as valid JSON array with exactly these fields:
 - wordCount: approximate word count (number)
 - estimatedDuration: time like "3:30"`;
 
-      const response = await generate({ prompt, type: 'text', format: 'json' });
+      const response = await generateText({ prompt, type: 'text', format: 'json' });
       
       if (response.success) {
         try {

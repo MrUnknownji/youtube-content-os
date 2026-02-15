@@ -25,7 +25,8 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useProjectStore } from '@/state/projectStore';
-import { useAIGeneration } from '@/hooks/useAIGeneration';
+import { useTextGeneration } from '@/hooks/useAIGeneration';
+import { useImageGenerationQueue } from '@/hooks/useImageGenerationQueue';
 import { getAIGateway } from '@/services/ai-provider';
 import { getDatabaseGateway } from '@/services/db-adapter';
 import { ImageViewer } from '@/components/ImageViewer';
@@ -34,7 +35,8 @@ import type { VideoMetadata, PinnedItem, ThumbnailConcept } from '@/types';
 
 export function MetadataSuite() {
   const { currentProject, currentStage, updateProject, finalizeMetadata, addPinnedItem } = useProjectStore();
-  const { generate } = useAIGeneration();
+  const { generate: generateText } = useTextGeneration();
+  const { generateImage, isGenerating: isImageGenerating, isAnyGenerating } = useImageGenerationQueue();
 
   const [activeTab, setActiveTab] = useState('titles');
   
@@ -60,7 +62,6 @@ export function MetadataSuite() {
   const [selectedThumbnail, setSelectedThumbnail] = useState<string>('');
   const [generateThumbnail, setGenerateThumbnail] = useState(false);
   const [generatedThumbnails, setGeneratedThumbnails] = useState<Record<string, string>>({});
-  const [generatingThumbnailId, setGeneratingThumbnailId] = useState<string | null>(null);
   const [localIsGenerating, setLocalIsGenerating] = useState(false);
   const [thumbnailPrompts, setThumbnailPrompts] = useState<Record<string, string>>({});
   const [copiedTitle, setCopiedTitle] = useState(false);
@@ -136,7 +137,7 @@ Make them catchy, clickable, and curiosity-inducing. Use emojis strategically (1
 
 Return as valid JSON array of strings only. No explanations.`;
 
-      const response = await generate({ prompt, type: 'text', format: 'json' });
+      const response = await generateText({ prompt, type: 'text', format: 'json' });
       
       if (response.success) {
         try {
@@ -216,12 +217,12 @@ CRITICAL REQUIREMENTS:
 
 Return the complete description.`;
 
-      const response = await generate({ prompt, type: 'text' });
+      const response = await generateText({ prompt, type: 'text' });
       if (response.success) {
         setDescription(response.data);
         const tagMatch = response.data.match(/#[\w]+/g);
         if (tagMatch) {
-          setTags(tagMatch.map(t => t.slice(1)));
+          setTags(tagMatch.map((t: string) => t.slice(1)));
         }
         toast.success('Description generated');
       }
@@ -238,7 +239,7 @@ Return the complete description.`;
       const prompt = `Generate 5 YouTube thumbnail concepts for: "${topic}"
 Return as valid JSON array with fields: id, title, description, layout, textOverlay, colorScheme`;
 
-      const response = await generate({ prompt, type: 'text', format: 'json' });
+      const response = await generateText({ prompt, type: 'text', format: 'json' });
       
       if (response.success) {
         try {
@@ -268,52 +269,31 @@ Return as valid JSON array with fields: id, title, description, layout, textOver
     }
   };
 
-  const generateThumbnailImage = async (concept: ThumbnailConcept) => {
-    if (generatingThumbnailId === concept.id) return;
+const generateThumbnailImage = async (concept: ThumbnailConcept) => {
+    if (isImageGenerating(concept.id)) return;
     
-    setGeneratingThumbnailId(concept.id);
-    
-    try {
-      const prompt = `Create a YouTube thumbnail: ${concept.description}. 
-Layout: ${concept.layout}. 
-Text: ${concept.textOverlay}.
-Style: ${concept.colorScheme}. 
-High quality, eye-catching, professional.`;
+    const prompt = `Create a YouTube thumbnail: ${concept.description}. 
+    Layout: ${concept.layout}. 
+    Text: ${concept.textOverlay}.
+    Style: ${concept.colorScheme}. 
+    High quality, eye-catching, professional.`;
 
-      // Store the prompt for regenerate functionality
-      setThumbnailPrompts(prev => ({ ...prev, [concept.id]: prompt }));
+    setThumbnailPrompts(prev => ({ ...prev, [concept.id]: prompt }));
 
-      const response = await ai.generate({ prompt, type: 'image' });
-      if (response.success) {
-        setGeneratedThumbnails(prev => ({ ...prev, [concept.id]: response.data }));
-        toast.success('Thumbnail preview generated');
-      }
-    } catch (error) {
-      toast.error('Failed to generate thumbnail');
-    } finally {
-      setGeneratingThumbnailId(null);
+    const response = await generateImage(prompt, concept.id);
+    if (response?.success) {
+      setGeneratedThumbnails(prev => ({ ...prev, [concept.id]: response.data }));
     }
   };
 
   const regenerateThumbnailImage = async (conceptId: string) => {
-    const concept = thumbnailConcepts.find(c => c.id === conceptId);
     const storedPrompt = thumbnailPrompts[conceptId];
+    if (!storedPrompt) return;
+    if (isImageGenerating(conceptId)) return;
     
-    if (!concept || !storedPrompt) return;
-    if (generatingThumbnailId === conceptId) return;
-    
-    setGeneratingThumbnailId(conceptId);
-    
-    try {
-      const response = await ai.generate({ prompt: storedPrompt, type: 'image' });
-      if (response.success) {
-        setGeneratedThumbnails(prev => ({ ...prev, [conceptId]: response.data }));
-        toast.success('Thumbnail regenerated');
-      }
-    } catch (error) {
-      toast.error('Failed to regenerate thumbnail');
-    } finally {
-      setGeneratingThumbnailId(null);
+    const response = await generateImage(storedPrompt, conceptId);
+    if (response?.success) {
+      setGeneratedThumbnails(prev => ({ ...prev, [conceptId]: response.data }));
     }
   };
 
@@ -574,7 +554,7 @@ High quality, eye-catching, professional.`;
             className="grid grid-cols-1 md:grid-cols-2 gap-4"
           >
             {thumbnailConcepts.map((concept) => {
-              const isGenerating = generatingThumbnailId === concept.id;
+              const isGenerating = isImageGenerating(concept.id);
               const hasGeneratedImage = !!generatedThumbnails[concept.id];
               
               return (
@@ -678,7 +658,7 @@ High quality, eye-catching, professional.`;
 
           <Button
             onClick={handleFinalizeMetadata}
-            disabled={!canFinalize || localIsGenerating || generatingThumbnailId !== null}
+            disabled={!canFinalize || localIsGenerating || isAnyGenerating}
             className="w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-full py-6"
           >
             <Check className="mr-2 h-5 w-5" />

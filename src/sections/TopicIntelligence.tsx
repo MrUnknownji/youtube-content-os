@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useProjectStore } from '@/state/projectStore';
-import { useAIGeneration } from '@/hooks/useAIGeneration';
+import { useTextGeneration } from '@/hooks/useAIGeneration';
 import { getAIGateway } from '@/services/ai-provider';
 import { getDatabaseGateway } from '@/services/db-adapter';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -36,7 +36,7 @@ const MOCK_TOPICS: TopicSuggestion[] = [
 
 export function TopicIntelligence() {
   const { currentProject, currentStage, updateProject, finalizeTopic, pinnedItems, addPinnedItem, removePinnedItem } = useProjectStore();
-  const { generate } = useAIGeneration();
+  const { generate: generateText } = useTextGeneration();
   
   const [topics, setTopics] = useState<TopicSuggestion[]>(() => {
     if (currentProject?.topicSuggestions && currentProject.topicSuggestions.length > 0) {
@@ -107,7 +107,7 @@ Return as valid JSON array with these exact fields:
 - rationale: explain which psychological triggers this uses and why it works (in English)
 - predictedScore: number 70-95 indicating viral potential`;
 
-      const response = await generate({ prompt, type: 'text', format: 'json' });
+      const response = await generateText({ prompt, type: 'text', format: 'json' });
       
       if (response.success) {
         try {
