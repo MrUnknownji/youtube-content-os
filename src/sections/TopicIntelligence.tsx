@@ -78,22 +78,34 @@ export function TopicIntelligence() {
       
       const prompt = `${dataContext}
 
-You are a YouTube video title expert. Generate exactly 10 engaging YouTube video TITLE suggestions that would work well as clickable video titles.
+You are a YouTube viral content strategist. Generate exactly 10 VIDEO TITLE suggestions that are designed to maximize clicks and engagement.
 
-IMPORTANT INSTRUCTIONS:
-- Generate VIDEO TITLES only, not tips, not advice, not strategies
-- Each title should be catchy, curiosity-inducing, and click-worthy
-- Use proven title formats: numbers, how-to, questions, revelations, challenges
-- Titles should be in HINGLISH (mix of Hindi + English, written in English script)
-- Example good titles: "Maine 30 Din Ye Try Kiya - Results Dekho!", "Ye Galti Mat Karna YouTube Par"
+VIRAL TITLE FORMULAS TO USE:
+1. CURIOSITY GAP: "Maine ye discover kiya aur shock ho gaya..."
+2. NUMBERS + SPECIFICITY: "5 Galtiyan jo 90% log karte hain"
+3. TRANSFORMATION: "Zero se Hero: 30 din mein kaise..."
+4. CONTROVERSY: "Jo aap sunte ho, woh galat hai..."
+5. SECRETS/INSIDER: "YouTube nahi batata ye secret..."
+6. PERSONAL STORY: "Maine try kiya aur results..."
+7. CHALLENGE: "30 Din Challenge jo change karegi..."
+8. BEFORE/AFTER: "Student se Topper: Ye ek cheez..."
+9. WARNING: "Ye galti mat karna, maine ki thi..."
+10. HOW-TO WITH TWIST: "Kaise kare X (jo 99% log nahi jaante)"
+
+PSYCHOLOGICAL TRIGGERS:
+- FOMO (fear of missing out)
+- Loss aversion (what they'll lose)
+- Social proof (numbers, percentages)
+- Urgency (time-sensitive)
+- Exclusivity (insider knowledge)
 
 User preferences: ${preferences || 'None specified'}
 
 Return as valid JSON array with these exact fields:
 - id: unique identifier like "topic-1"
 - title: the video title in Hinglish (mix of Hindi and English in English script)
-- rationale: brief explanation of why this title works (in English)
-- predictedScore: number 60-95 indicating click potential`;
+- rationale: explain which psychological triggers this uses and why it works (in English)
+- predictedScore: number 70-95 indicating viral potential`;
 
       const response = await generate({ prompt, type: 'text', format: 'json' });
       

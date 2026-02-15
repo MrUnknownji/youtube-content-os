@@ -1,6 +1,6 @@
 // YouTube Content OS - TypeScript Interfaces
 
-export type WorkflowStage = 'ingestion' | 'topics' | 'script' | 'storyboard' | 'metadata' | 'complete' | 'imagegen';
+export type WorkflowStage = 'ingestion' | 'topics' | 'script' | 'storyboard' | 'metadata' | 'shorts' | 'complete' | 'imagegen';
 
 export type DataSourceType = 'csv' | 'images' | 'manual';
 
@@ -10,7 +10,48 @@ export type StorageType = 'cloudinary' | 'base64_mongo' | 'indexeddb_ref';
 
 export type AIProvider = 'openai' | 'anthropic' | 'gemini' | 'ollama' | 'mock';
 
-export type PinItemType = 'topic' | 'script' | 'storyboard' | 'title' | 'description' | 'thumbnail_concept';
+export type PinItemType = 'topic' | 'script' | 'storyboard' | 'title' | 'description' | 'thumbnail_concept' | 'shorts';
+
+export interface ShortsExtract {
+  id: string;
+  sourceScriptId: string;
+  title: string;
+  duration: number;
+  timestampStart: string;
+  timestampEnd: string;
+  hookText: string;
+  hookReason: string;
+  fullContent: string;
+  engagementScore: number;
+  viralPotential: 'low' | 'medium' | 'high' | 'viral';
+  contentType: 'hook' | 'twist' | 'reveal' | 'emotion' | 'value_bomb' | 'controversy';
+  targetAudience: string;
+  suggestedThumbnail: string;
+  suggestedTitle: string[];
+  hashtags: string[];
+  bestPostingTime: string;
+  crossPlatformAdaptation: {
+    instagram: string;
+    tiktok: string;
+  };
+}
+
+export interface CreatorProfile {
+  id: string;
+  name: string;
+  niche: string;
+  toneOfVoice: string[];
+  contentPillars: string[];
+  audiencePersona: string;
+  brandKeywords: string[];
+  postingSchedule: {
+    preferredDays: string[];
+    preferredTimes: string[];
+    shortsFrequency: string;
+  };
+  contentGoals: string[];
+  uniqueSellingPoint: string;
+}
 
 // Data Ingestion Types
 export interface DashboardData {
@@ -96,10 +137,10 @@ export interface Project {
     title: string;
     finalizedAt: Date;
   } | null;
-  topicSuggestions?: TopicSuggestion[]; // Persist suggestions
-  scriptVariants?: ScriptVariant[]; // Persist drafts
-  titleSuggestions?: string[]; // Persist title options
-  thumbnailConcepts?: ThumbnailConcept[]; // Persist thumbnail concepts
+  topicSuggestions?: TopicSuggestion[];
+  scriptVariants?: ScriptVariant[];
+  titleSuggestions?: string[];
+  thumbnailConcepts?: ThumbnailConcept[];
   selectedScript: {
     id: string;
     content: string;
@@ -110,6 +151,8 @@ export interface Project {
     format: ScriptFormat;
   } | null;
   selectedMetadata: VideoMetadata | null;
+  shortsExtracts?: ShortsExtract[];
+  creatorProfile?: CreatorProfile;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -119,7 +162,7 @@ export interface PinnedItem {
   id: string;
   userId: string;
   itemType: PinItemType;
-  content: TopicSuggestion | ScriptVariant | StoryboardScene[] | string;
+  content: TopicSuggestion | ScriptVariant | StoryboardScene[] | string | ShortsExtract;
   sourceProjectId: string;
   pinnedAt: Date;
 }

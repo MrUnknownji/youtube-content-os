@@ -108,13 +108,32 @@ export function MetadataSuite() {
     setLocalIsGenerating(true);
     try {
       const topic = currentProject?.selectedTopic?.title || 'productivity video';
-      const prompt = `You are a YouTube title expert. Generate exactly 10 engaging YouTube video titles for a video about: "${topic}"
+      const prompt = `You are a YouTube title expert specializing in viral, high-CTR titles. Generate exactly 10 engaging YouTube video titles for a video about: "${topic}"
 
 CRITICAL LANGUAGE REQUIREMENT:
 - Write ALL titles in HINGLISH (Hindi + English mix, written in English/Roman script)
 - Example: "Maine 30 Din Ye Try Kiya - Results Dekho!"
-- Make them catchy, clickable, and curiosity-inducing
-- Use proven formats: numbers, challenges, revelations, before/after
+
+VIRAL TITLE FORMULAS (use variety):
+1. CURIOSITY GAP: "Maine ye discover kiya aur..."
+2. NUMBERS + SPECIFICITY: "5 Galtiyan jo 90% log karte hain"
+3. TRANSFORMATION: "Zero se Hero: 30 din mein..."
+4. CONTROVERSY: "Jo aap sunte ho, woh galat hai..."
+5. SECRETS: "YouTube nahi batata ye secret..."
+6. PERSONAL STORY: "Maine try kiya aur results..."
+7. CHALLENGE: "30 Din Challenge jo..."
+8. BEFORE/AFTER: "Student se Topper: Ye ek cheez..."
+9. WARNING: "Ye galti mat karna..."
+10. HOW-TO TWIST: "Kaise kare X (jo 99% nahi jaante)"
+
+PSYCHOLOGICAL TRIGGERS TO USE:
+- FOMO (fear of missing out)
+- Loss aversion (what they'll lose)
+- Social proof (numbers, percentages)
+- Urgency (time-sensitive)
+- Exclusivity (insider knowledge)
+
+Make them catchy, clickable, and curiosity-inducing. Use emojis strategically (1-2 per title max).
 
 Return as valid JSON array of strings only. No explanations.`;
 
@@ -149,24 +168,54 @@ Return as valid JSON array of strings only. No explanations.`;
       
       const timestamps = scenes.map(s => `${s.timestampStart} - ${s.scriptSegment.slice(0, 50)}...`).join('\n');
       
-      const prompt = `Write an SEO-optimized YouTube video description for: "${topic}"
+      const prompt = `Write an SEO-optimized YouTube video description that drives engagement and discovery.
 
-CRITICAL LANGUAGE REQUIREMENT:
-- Write the description in HINGLISH (Hindi + English mix, written in English/Roman script)
-- Make it conversational and engaging like Indian YouTube creators
+Video Topic: "${topic}"
 
 Script excerpt: ${script}
 
 Timestamps to include:
 ${timestamps}
 
-DESCRIPTION REQUIREMENTS:
-- Start with a hook line about the video
-- Include the timestamps in proper format
-- Add relevant emojis throughout
-- End with 5 relevant hashtags
-- Include a call-to-action to subscribe
-- Total length: 150-300 words`;
+DESCRIPTION STRUCTURE FOR MAXIMUM ENGAGEMENT:
+
+1. HOOK LINE (First 2 lines visible in search):
+- Create curiosity or value promise
+- Include main keyword naturally
+- Written in Hinglish
+
+2. EXPANDED SUMMARY (150-200 words):
+- What viewer will learn/gain
+- Why they should watch till the end
+- Key points covered
+- Written in Hinglish with personality
+
+3. TIMESTAMPS SECTION:
+- Format: 0:00 - Topic
+- Include 5-8 key moments
+
+4. CALL-TO-ACTION BLOCK:
+- Subscribe reminder with benefit
+- Like/Comment prompt
+- Specific question to encourage comments
+
+5. RESOURCES/LINKS SECTION:
+- Mention any tools/resources
+- Social media links placeholder
+
+6. HASHTAGS:
+- 5-8 relevant hashtags
+- Include #shorts if applicable
+
+CRITICAL REQUIREMENTS:
+- Write primarily in HINGLISH (Hindi + English mix)
+- Include relevant keywords naturally
+- Add 3-5 emojis throughout (not excessive)
+- Make it feel personal and conversational
+- Total length: 200-400 words
+- Include a question to boost comments
+
+Return the complete description.`;
 
       const response = await generate({ prompt, type: 'text' });
       if (response.success) {
@@ -302,7 +351,7 @@ High quality, eye-catching, professional.`;
     };
     
     finalizeMetadata(metadata);
-    toast.success('Metadata finalized!');
+    toast.success('Metadata finalized! Now extract shorts for maximum reach.');
     setActiveTab('done');
   };
 

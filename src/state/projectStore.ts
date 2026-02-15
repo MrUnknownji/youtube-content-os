@@ -145,11 +145,11 @@ export const useProjectStore = create<ProjectState>()(
       finalizeMetadata: (metadata) => set((state) => {
         if (!state.currentProject) return state;
         return {
-          currentStage: 'complete',
+          currentStage: 'shorts',
           currentProject: {
             ...state.currentProject,
             selectedMetadata: metadata,
-            stage: 'complete'
+            stage: 'shorts'
           }
         };
       }),

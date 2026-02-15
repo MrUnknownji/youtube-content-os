@@ -20,7 +20,8 @@ import {
   Bookmark,
   ChevronRight,
   Plus,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Scissors
 } from 'lucide-react';
 import { useProjectStore } from '@/state/projectStore';
 import { PinnedItemsSidebar } from '@/sections/PinnedItemsSidebar';
@@ -39,6 +40,7 @@ const STAGES: { id: WorkflowStage; label: string; icon: React.ElementType }[] = 
   { id: 'script', label: 'Script', icon: FileText },
   { id: 'storyboard', label: 'Visuals', icon: Clapperboard },
   { id: 'metadata', label: 'Meta', icon: Tag },
+  { id: 'shorts', label: 'Shorts', icon: Scissors },
   { id: 'complete', label: 'Done', icon: Check },
 ];
 
@@ -61,14 +63,13 @@ export function Navigation({ currentStage, onStageChange }: NavigationProps) {
   const pinnedCount = pinnedItems.length;
 
   const getStageStatus = (stageId: WorkflowStage) => {
-    // imagegen is always available
     if (stageId === 'imagegen') {
       return currentStage === 'imagegen' ? 'active' : 'available';
     }
 
     if (!currentProject) return 'locked';
 
-    const stageOrder = ['ingestion', 'topics', 'script', 'storyboard', 'metadata', 'complete'];
+    const stageOrder = ['ingestion', 'topics', 'script', 'storyboard', 'metadata', 'shorts', 'complete'];
     const currentIndex = stageOrder.indexOf(currentStage);
     const stageIndex = stageOrder.indexOf(stageId);
 
@@ -86,10 +87,11 @@ export function Navigation({ currentStage, onStageChange }: NavigationProps) {
       topics: 'Topics', 
       script: 'Script',
       storyboard: 'Visuals',
-      metadata: 'Meta'
+      metadata: 'Meta',
+      shorts: 'Shorts'
     };
     
-    const stageOrder = ['ingestion', 'topics', 'script', 'storyboard', 'metadata', 'complete'];
+    const stageOrder = ['ingestion', 'topics', 'script', 'storyboard', 'metadata', 'shorts', 'complete'];
     const currentIndex = stageOrder.indexOf(currentStage);
     
     if (stageId === 'script' && !currentProject.selectedTopic) {
@@ -101,8 +103,11 @@ export function Navigation({ currentStage, onStageChange }: NavigationProps) {
     if (stageId === 'metadata' && !currentProject.selectedStoryboard) {
       return 'Finalize storyboard first';
     }
-    if (stageId === 'complete' && !currentProject.selectedMetadata) {
+    if (stageId === 'shorts' && !currentProject.selectedMetadata) {
       return 'Complete metadata first';
+    }
+    if (stageId === 'complete' && !currentProject.selectedMetadata) {
+      return 'Complete all stages first';
     }
     
     const prevStage = stageOrder[currentIndex];

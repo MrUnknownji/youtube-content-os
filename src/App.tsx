@@ -10,7 +10,9 @@ import { TopicIntelligence } from '@/sections/TopicIntelligence';
 import { ScriptStudio } from '@/sections/ScriptStudio';
 import { StoryboardEngine } from '@/sections/StoryboardEngine';
 import { MetadataSuite } from '@/sections/MetadataSuite';
+import { ShortsGenerator } from '@/sections/ShortsGenerator';
 import { DirectImageGenerator } from '@/sections/DirectImageGenerator';
+import { CreatorProfileSetup } from '@/sections/CreatorProfile';
 import { useProjectStore } from '@/state/projectStore';
 import type { WorkflowStage } from '@/types';
 
@@ -45,7 +47,6 @@ function App() {
   }, []);
 
   const handleStageChange = (stage: WorkflowStage) => {
-    // Allow access to imagegen without a project
     if (stage === 'imagegen') {
       setCurrentStage(stage);
       return;
@@ -56,24 +57,22 @@ function App() {
       return;
     }
 
-    // Check if user can access this stage
-    const stageOrder: WorkflowStage[] = ['ingestion', 'topics', 'script', 'storyboard', 'metadata', 'complete'];
+    const stageOrder: WorkflowStage[] = ['ingestion', 'topics', 'script', 'storyboard', 'metadata', 'shorts', 'complete'];
     const targetIndex = stageOrder.indexOf(stage);
     const currentIndex = stageOrder.indexOf(currentStage);
 
-    // Allow going back or to current stage
     if (targetIndex <= currentIndex) {
       setCurrentStage(stage);
       return;
     }
 
-    // Check prerequisites for moving forward
     const prerequisites: Record<WorkflowStage, () => boolean> = {
       ingestion: () => true,
       topics: () => true,
       script: () => currentProject.selectedTopic !== null,
       storyboard: () => currentProject.selectedScript !== null,
       metadata: () => currentProject.selectedStoryboard !== null,
+      shorts: () => currentProject.selectedMetadata !== null,
       complete: () => currentProject.selectedMetadata !== null,
       imagegen: () => true
     };
@@ -96,8 +95,16 @@ function App() {
       case 'storyboard':
         return <StoryboardEngine />;
       case 'metadata':
-      case 'complete':
         return <MetadataSuite />;
+      case 'shorts':
+        return <ShortsGenerator />;
+      case 'complete':
+        return (
+          <div className="space-y-6">
+            <ShortsGenerator />
+            <CreatorProfileSetup />
+          </div>
+        );
       case 'imagegen':
         return <DirectImageGenerator />;
       default:
@@ -147,9 +154,9 @@ function App() {
           <div className="mb-8">
             <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
               <span>{currentStage === 'imagegen' ? 'Tool' : 'Stage'}</span>
-              <span>{currentStage === 'imagegen' ? '•' : ['ingestion', 'topics', 'script', 'storyboard', 'metadata', 'complete'].indexOf(currentStage) + 1}</span>
+              <span>{currentStage === 'imagegen' ? '•' : ['ingestion', 'topics', 'script', 'storyboard', 'metadata', 'shorts', 'complete'].indexOf(currentStage) + 1}</span>
               <span>of</span>
-              <span>{currentStage === 'imagegen' ? '•' : '6'}</span>
+              <span>{currentStage === 'imagegen' ? '•' : '7'}</span>
             </div>
             <h1 className="text-3xl font-bold font-sans text-foreground capitalize">
               {currentStage === 'ingestion' && 'Data Ingestion'}
@@ -157,6 +164,7 @@ function App() {
               {currentStage === 'script' && 'Script Studio'}
               {currentStage === 'storyboard' && 'Visual Storyboard'}
               {currentStage === 'metadata' && 'Metadata Suite'}
+              {currentStage === 'shorts' && 'Shorts Extractor'}
               {currentStage === 'complete' && 'Project Complete'}
               {currentStage === 'imagegen' && 'Image Generator'}
             </h1>

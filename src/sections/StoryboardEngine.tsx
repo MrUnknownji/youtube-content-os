@@ -179,27 +179,46 @@ export function StoryboardEngine() {
       const script = currentProject?.selectedScript?.content || '';
       const format = currentProject?.selectedScript?.format || 'facecam';
       
-      const prompt = `Create a detailed visual storyboard for this YouTube script. 
-CRITICAL: Every scene must have a visual description AND an image generation prompt. Do not leave them empty.
+      const prompt = `You are a professional video director and storyboard artist. Create a detailed visual storyboard for this YouTube script.
 
-Script segment:
+SCRIPT:
 ${script.slice(0, 1500)}...
 
 Format: ${format}
 
-Break down into scenes with:
-- sceneNumber (integer)
-- timestampStart (string, e.g., "0:15")
-- timestampEnd (string, e.g., "0:30")
-- duration (integer seconds)
-- type (A-roll, B-roll, ScreenCap, or Graphic)
-- scriptSegment (text being spoken)
-- visualDescription (detailed action/visuals - MANDATORY)
-- imagePrompt (detailed AI image prompt - MANDATORY)
-- recordingInstructions (camera movement/software)
-- audioNote (SFX/mood)
+STORYBOARD PRINCIPLES FOR ENGAGEMENT:
+1. VARIETY: Alternate between different shot types to maintain interest
+2. PACING: Faster cuts during exciting moments, longer shots for explanations
+3. VISUAL HOOKS: Every scene should have a visual element that catches the eye
+4. TEXT OVERLAYS: Use on-screen text to reinforce key points
+5. TRANSITIONS: Suggest smooth transitions between scenes
 
-Return as valid JSON array. Ensure total duration matches script.`;
+SCENE TYPES TO USE:
+- A-roll: Host speaking directly to camera (authentic, personal)
+- B-roll: Supporting footage, demonstrations, lifestyle shots
+- ScreenCap: Screen recordings for tutorials and demos
+- Graphic: Charts, infographics, animations, text callouts
+
+For each scene, provide:
+- sceneNumber: integer (1, 2, 3...)
+- timestampStart: string (e.g., "0:15")
+- timestampEnd: string (e.g., "0:30")
+- duration: integer seconds (15-45 seconds per scene typical)
+- type: "A-roll" | "B-roll" | "ScreenCap" | "Graphic"
+- scriptSegment: the exact text being spoken (20-50 words)
+- visualDescription: detailed visual action - MANDATORY, be specific
+- imagePrompt: detailed AI image generation prompt - MANDATORY, describe colors, mood, composition
+- recordingInstructions: camera angles, movements, software steps
+- audioNote: SFX, music mood, voice direction
+
+IMPORTANT:
+- Ensure smooth visual flow between scenes
+- Match scene type to content (tutorials = ScreenCap, stories = B-roll)
+- Include variety in shot types
+- Make image prompts detailed and specific for good generation
+- Consider thumbnail-worthy moments
+
+Return as valid JSON array. Total duration should match script length (approximately 3-4 minutes for a typical video).`;
 
       const response = await generate({ prompt, type: 'text', format: 'json' });
       
@@ -223,7 +242,6 @@ Return as valid JSON array. Ensure total duration matches script.`;
                 return `${m}:${s_.toString().padStart(2, '0')}`;
               };
 
-              // Ensure timestamps are valid, filling in missing or default values
               const start = (s.timestampStart && s.timestampStart !== '0:00') ? s.timestampStart : (i === 0 ? '0:00' : lastEndTime);
               const end = (s.timestampEnd && s.timestampEnd !== '0:00' && s.timestampEnd !== start) ? s.timestampEnd : calcEnd(start, duration);
               

@@ -79,7 +79,7 @@ export function ScriptStudio() {
     
     try {
       const topic = currentProject?.selectedTopic?.title || 'productivity and focus';
-      const prompt = `You are a professional YouTube scriptwriter. Write exactly 3 complete YouTube video scripts about: "${topic}"
+      const prompt = `You are an expert YouTube scriptwriter specializing in viral, engaging content. Write exactly 3 complete YouTube video scripts about: "${topic}"
 
 Format: ${format} video
 
@@ -89,24 +89,42 @@ CRITICAL LANGUAGE REQUIREMENT:
 - Use conversational Indian YouTube creator tone
 - Mix Hindi and English naturally like Indian creators do
 
+ENGAGEMENT PSYCHOLOGY PRINCIPLES TO APPLY:
+1. HOOK (0-3 seconds): Start with pattern interrupt - shocking statement, bold claim, or curiosity gap
+2. PROBLEM AGITATION: Make viewer feel the pain point intensely
+3. SOLUTION TEASER: Hint at the solution but don't reveal fully yet
+4. VALUE DELIVERY: Provide actionable, specific steps they can implement
+5. PROOF/SOCIAL VALIDATION: Use numbers, results, or relatable examples
+6. CALL-TO-ACTION: Clear, specific action with benefit statement
+
 ${format === 'facecam' ? 
   `FACECAM FORMAT:
 - Include host directions in [brackets] like [CAMERA ON - ENERGETIC] or [LEAN IN - CONSPIRATORIAL]
 - Add emotional cues and camera angles
-- Write dialogue meant to be spoken directly to camera` : 
+- Write dialogue meant to be spoken directly to camera
+- Include gesture instructions like [POINTS TO SCREEN] or [HOLDS UP PROP]` : 
   `FACELESS FORMAT:
 - Include [TIMESTAMP] markers like [0:00-0:15]
 - Add B-roll descriptions, stock footage suggestions
-- Include TEXT OVERLAY instructions
-- Add NARRATOR (V.O.) markers for voiceover`}
+- Include TEXT OVERLAY instructions for key points
+- Add NARRATOR (V.O.) markers for voiceover
+- Specify transitions: [CUT TO], [ZOOM], [FADE]`}
 
-SCRIPT REQUIREMENTS:
-- Duration: 3-4 minutes when read aloud
-- Hook in first 15 seconds that grabs attention
-- Clear problem/solution structure
-- Strong call-to-action ending (subscribe, like, comment)
-- DO NOT include meta-commentary or advice about YouTube growth
+SCRIPT STRUCTURE (3-4 minutes):
+- INTRO HOOK (0-15s): Must stop the scroll. Use one of these patterns:
+  * Shocking statistic: "95% log ye galti karte hain..."
+  * Bold promise: "Aaj ke baad aapki life change ho jayegi..."
+  * Curiosity gap: "Maine jo discover kiya, woh shocking hai..."
+  * Contrarian take: "Jo aap sunte ho, woh galat hai..."
+- PROBLEM SETTING (15-45s): Relatable story, pain points
+- SOLUTION BUILD-UP (45s-2min): Step by step with examples
+- PROOF/RESULTS (2min-3min): Show it works
+- POWERFUL CTA (3min-3:30s): Subscribe with reason to return
+
+IMPORTANT: 
+- DO NOT include meta-commentary about YouTube growth tips
 - Write the ACTUAL SCRIPT content only
+- Each script should feel different in approach/tone
 
 Return as valid JSON array with exactly these fields:
 - id: "script-1", "script-2", "script-3"
