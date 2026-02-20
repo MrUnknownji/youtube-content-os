@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { 
   X, 
   Lightbulb, 
@@ -41,9 +41,9 @@ export function PinnedItemsSidebar({ onClose }: PinnedItemsSidebarProps) {
     }
   };
 
-  const filteredItems = activeTab === 'all' 
+  const filteredItems = useMemo(() => activeTab === 'all'
     ? pinnedItems 
-    : pinnedItems.filter(item => item.itemType === activeTab);
+    : pinnedItems.filter(item => item.itemType === activeTab), [activeTab, pinnedItems]);
 
   const getIcon = (type: string) => {
     switch (type) {
