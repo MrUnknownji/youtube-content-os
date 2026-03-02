@@ -1,10 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
+import { useState, useEffect, useRef } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import {
   Zap,
   RefreshCw,
@@ -28,24 +28,28 @@ import {
   ChevronDown,
   ChevronUp,
   Wand2,
-  Image as ImageIcon
-} from 'lucide-react';
-import { toast } from 'sonner';
-import { useProjectStore } from '@/state/projectStore';
-import { useTextGeneration } from '@/hooks/useAIGeneration';
-import { useImageGenerationQueue } from '@/hooks/useImageGenerationQueue';
-import { getAIGateway } from '@/services/ai-provider';
-import { getDatabaseGateway } from '@/services/db-adapter';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ImageViewer } from '@/components/ImageViewer';
-import type { ShortsExtract, PinnedItem } from '@/types';
+  Image as ImageIcon,
+} from "lucide-react";
+import { toast } from "sonner";
+import { useProjectStore } from "@/state/projectStore";
+import { useTextGeneration } from "@/hooks/useAIGeneration";
+import { useImageGenerationQueue } from "@/hooks/useImageGenerationQueue";
+import { getAIGateway } from "@/services/ai-provider";
+import { getDatabaseGateway } from "@/services/db-adapter";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { ImageViewer } from "@/components/ImageViewer";
+import type { ShortsExtract, PinnedItem } from "@/types";
 
 const VIRAL_POTENTIAL_COLORS = {
-  low: 'bg-muted text-muted-foreground',
-  medium: 'bg-chart-3 text-primary-foreground',
-  high: 'bg-chart-2 text-primary-foreground',
-  viral: 'bg-chart-1 text-primary-foreground'
+  low: "bg-muted text-muted-foreground",
+  medium: "bg-chart-3 text-primary-foreground",
+  high: "bg-chart-2 text-primary-foreground",
+  viral: "bg-chart-1 text-primary-foreground",
 };
 
 const CONTENT_TYPE_ICONS = {
@@ -54,73 +58,91 @@ const CONTENT_TYPE_ICONS = {
   reveal: Lightbulb,
   emotion: Heart,
   value_bomb: Trophy,
-  controversy: AlertTriangle
+  controversy: AlertTriangle,
 };
 
 const MOCK_SHORTS: ShortsExtract[] = [
   {
-    id: 'short-1',
-    sourceScriptId: 'script-1',
-    title: 'The 5-Second Rule That Changed Everything',
+    id: "short-1",
+    sourceScriptId: "script-1",
+    title: "The 5-Second Rule That Changed Everything",
     duration: 25,
-    timestampStart: '0:15',
-    timestampEnd: '0:40',
-    hookText: "Agar aap ye ek cheez nahi karte, toh aapka 90% time waste ho raha hai...",
-    hookReason: 'Creates curiosity gap with a shocking statistic and personal address',
-    fullContent: "Agar aap ye ek cheez nahi karte, toh aapka 90% time waste ho raha hai... Maine khud try kiya aur results dekho - productivity 3x badh gayi!",
+    timestampStart: "0:15",
+    timestampEnd: "0:40",
+    hookText:
+      "Agar aap ye ek cheez nahi karte, toh aapka 90% time waste ho raha hai...",
+    hookReason:
+      "Creates curiosity gap with a shocking statistic and personal address",
+    fullContent:
+      "Agar aap ye ek cheez nahi karte, toh aapka 90% time waste ho raha hai... Maine khud try kiya aur results dekho - productivity 3x badh gayi!",
     engagementScore: 92,
-    viralPotential: 'viral',
-    contentType: 'hook',
-    targetAudience: 'Productivity seekers, students, professionals',
-    suggestedThumbnail: 'Person with shocked expression, clock in background, bold text "90% WASTE"',
+    viralPotential: "viral",
+    contentType: "hook",
+    targetAudience: "Productivity seekers, students, professionals",
+    suggestedThumbnail:
+      'Person with shocked expression, clock in background, bold text "90% WASTE"',
     suggestedTitle: [
-      'Ye Galti Mat Karna! 🚫',
-      '90% Log Ye Galat Karte Hain',
-      '1 Min Mein Sikh Jo Badal Degi Zindagi'
+      "Ye Galti Mat Karna! 🚫",
+      "90% Log Ye Galat Karte Hain",
+      "1 Min Mein Sikh Jo Badal Degi Zindagi",
     ],
-    hashtags: ['#productivity', '#timemanagement', '#success', '#motivation', '#shorts'],
-    bestPostingTime: '7-9 PM IST',
+    hashtags: [
+      "#productivity",
+      "#timemanagement",
+      "#success",
+      "#motivation",
+      "#shorts",
+    ],
+    bestPostingTime: "7-9 PM IST",
     crossPlatformAdaptation: {
-      instagram: 'Add trending audio, use 4:5 ratio, include poll sticker',
-      tiktok: 'Use popular sound, add captions, faster pace with jump cuts'
-    }
+      instagram: "Add trending audio, use 4:5 ratio, include poll sticker",
+      tiktok: "Use popular sound, add captions, faster pace with jump cuts",
+    },
   },
   {
-    id: 'short-2',
-    sourceScriptId: 'script-1',
-    title: 'The Hidden Feature Nobody Knows',
+    id: "short-2",
+    sourceScriptId: "script-1",
+    title: "The Hidden Feature Nobody Knows",
     duration: 20,
-    timestampStart: '1:30',
-    timestampEnd: '1:50',
-    hookText: "Maine YouTube pe 100+ videos dekhi aur ye secret feature paya...",
-    hookReason: 'Exclusivity and insider knowledge creates FOMO',
-    fullContent: "Maine YouTube pe 100+ videos dekhi aur ye secret feature paya... Settings mein jao, ye enable karo, and boom - results dekho!",
+    timestampStart: "1:30",
+    timestampEnd: "1:50",
+    hookText:
+      "Maine YouTube pe 100+ videos dekhi aur ye secret feature paya...",
+    hookReason: "Exclusivity and insider knowledge creates FOMO",
+    fullContent:
+      "Maine YouTube pe 100+ videos dekhi aur ye secret feature paya... Settings mein jao, ye enable karo, and boom - results dekho!",
     engagementScore: 88,
-    viralPotential: 'high',
-    contentType: 'reveal',
-    targetAudience: 'Tech enthusiasts, content creators',
-    suggestedThumbnail: 'Phone screen with secret feature highlighted, "SECRET" text',
+    viralPotential: "high",
+    contentType: "reveal",
+    targetAudience: "Tech enthusiasts, content creators",
+    suggestedThumbnail:
+      'Phone screen with secret feature highlighted, "SECRET" text',
     suggestedTitle: [
-      'YouTube Ka Secret Feature! 🤫',
-      'Ye Feature Disable Hai 99% Log Ka',
-      'Unlock Hidden YouTube Settings'
+      "YouTube Ka Secret Feature! 🤫",
+      "Ye Feature Disable Hai 99% Log Ka",
+      "Unlock Hidden YouTube Settings",
     ],
-    hashtags: ['#youtube', '#secret', '#tips', '#tech', '#shorts'],
-    bestPostingTime: '12-2 PM IST',
+    hashtags: ["#youtube", "#secret", "#tips", "#tech", "#shorts"],
+    bestPostingTime: "12-2 PM IST",
     crossPlatformAdaptation: {
-      instagram: 'Screen recording style, use in-app music',
-      tiktok: 'Green screen effect, pointing trend'
-    }
-  }
+      instagram: "Screen recording style, use in-app music",
+      tiktok: "Green screen effect, pointing trend",
+    },
+  },
 ];
 
 export function ShortsGenerator() {
-  const { currentProject, updateProject, addPinnedItem, currentStage } = useProjectStore();
+  const { currentProject, updateProject, addPinnedItem, currentStage } =
+    useProjectStore();
   const { generate: generateText } = useTextGeneration();
-  const { generateImage, isGenerating: isImageGenerating } = useImageGenerationQueue();
+  const { generateImage, isGenerating: isImageGenerating } =
+    useImageGenerationQueue();
 
   const [shorts, setShorts] = useState<ShortsExtract[]>(() => {
-    if (currentProject?.shortsExtracts && currentProject.shortsExtracts.length > 0) {
+    if (
+      currentProject?.shortsExtracts &&
+      currentProject.shortsExtracts.length > 0
+    ) {
       return currentProject.shortsExtracts;
     }
     return getAIGateway().isAvailable() ? [] : MOCK_SHORTS;
@@ -130,7 +152,9 @@ export function ShortsGenerator() {
   const [expandedShort, setExpandedShort] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [generateThumbnails, setGenerateThumbnails] = useState(false);
-  const [generatedThumbnails, setGeneratedThumbnails] = useState<Record<string, string>>({});
+  const [generatedThumbnails, setGeneratedThumbnails] = useState<
+    Record<string, string>
+  >({});
 
   const ai = getAIGateway();
   const db = getDatabaseGateway();
@@ -138,7 +162,7 @@ export function ShortsGenerator() {
 
   useEffect(() => {
     if (
-      currentStage === 'shorts' &&
+      currentStage === "shorts" &&
       shorts.length === 0 &&
       ai.isAvailable() &&
       currentProject?.selectedScript &&
@@ -148,15 +172,20 @@ export function ShortsGenerator() {
       generationStarted.current = true;
       handleGenerateShorts();
     }
-  }, [currentStage, shorts.length, currentProject?.selectedScript, localIsGenerating]);
+  }, [
+    currentStage,
+    shorts.length,
+    currentProject?.selectedScript,
+    localIsGenerating,
+  ]);
 
   const handleGenerateShorts = async () => {
     if (localIsGenerating) return;
     setLocalIsGenerating(true);
 
     try {
-      const script = currentProject?.selectedScript?.content || '';
-      const topic = currentProject?.selectedTopic?.title || 'video content';
+      const script = currentProject?.selectedScript?.content || "";
+      const topic = currentProject?.selectedTopic?.title || "video content";
 
       const prompt = `You are a YouTube Shorts viral content expert. Analyze this script and extract EXACTLY 3 potential shorts (10-30 seconds each).
 
@@ -206,48 +235,79 @@ For each short, return as JSON:
 
 Return as valid JSON array of exactly 3 shorts. Make them genuinely viral-worthy.`;
 
-      const response = await generateText({ prompt, type: 'text', format: 'json' });
+      const response = await generateText({
+        prompt,
+        type: "text",
+        format: "json",
+      });
 
       if (response.success) {
         try {
           const jsonMatch = response.data.match(/\[[\s\S]*\]/);
-          const parsedShorts = jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(response.data);
+          const parsedShorts = jsonMatch
+            ? JSON.parse(jsonMatch[0])
+            : JSON.parse(response.data);
 
           if (Array.isArray(parsedShorts) && parsedShorts.length > 0) {
             const validatedShorts = parsedShorts.map((s, i) => ({
               id: String(s.id || `short-${i + 1}`),
-              sourceScriptId: String(s.sourceScriptId || currentProject?.selectedScript?.id || 'script-1'),
+              sourceScriptId: String(
+                s.sourceScriptId ||
+                  currentProject?.selectedScript?.id ||
+                  "script-1",
+              ),
               title: String(s.title || `Short ${i + 1}`),
               duration: Math.min(Math.max(parseInt(s.duration) || 20, 10), 30),
-              timestampStart: String(s.timestampStart || '0:00'),
-              timestampEnd: String(s.timestampEnd || '0:20'),
-              hookText: String(s.hookText || ''),
-              hookReason: String(s.hookReason || ''),
-              fullContent: String(s.fullContent || ''),
+              timestampStart: String(s.timestampStart || "0:00"),
+              timestampEnd: String(s.timestampEnd || "0:20"),
+              hookText: String(s.hookText || ""),
+              hookReason: String(s.hookReason || ""),
+              fullContent: String(s.fullContent || ""),
               engagementScore: parseInt(s.engagementScore) || 75,
-              viralPotential: ['low', 'medium', 'high', 'viral'].includes(s.viralPotential) ? s.viralPotential : 'medium',
-              contentType: ['hook', 'twist', 'reveal', 'emotion', 'value_bomb', 'controversy'].includes(s.contentType) ? s.contentType : 'hook',
-              targetAudience: String(s.targetAudience || 'General audience'),
-              suggestedThumbnail: String(s.suggestedThumbnail || ''),
-              suggestedTitle: Array.isArray(s.suggestedTitle) ? s.suggestedTitle.slice(0, 3) : ['Short Title'],
-              hashtags: Array.isArray(s.hashtags) ? s.hashtags.slice(0, 8) : ['#shorts'],
-              bestPostingTime: String(s.bestPostingTime || '6-8 PM IST'),
+              viralPotential: ["low", "medium", "high", "viral"].includes(
+                s.viralPotential,
+              )
+                ? s.viralPotential
+                : "medium",
+              contentType: [
+                "hook",
+                "twist",
+                "reveal",
+                "emotion",
+                "value_bomb",
+                "controversy",
+              ].includes(s.contentType)
+                ? s.contentType
+                : "hook",
+              targetAudience: String(s.targetAudience || "General audience"),
+              suggestedThumbnail: String(s.suggestedThumbnail || ""),
+              suggestedTitle: Array.isArray(s.suggestedTitle)
+                ? s.suggestedTitle.slice(0, 3)
+                : ["Short Title"],
+              hashtags: Array.isArray(s.hashtags)
+                ? s.hashtags.slice(0, 8)
+                : ["#shorts"],
+              bestPostingTime: String(s.bestPostingTime || "6-8 PM IST"),
               crossPlatformAdaptation: {
-                instagram: String(s.crossPlatformAdaptation?.instagram || 'Use trending audio'),
-                tiktok: String(s.crossPlatformAdaptation?.tiktok || 'Use popular sound')
-              }
+                instagram: String(
+                  s.crossPlatformAdaptation?.instagram || "Use trending audio",
+                ),
+                tiktok: String(
+                  s.crossPlatformAdaptation?.tiktok || "Use popular sound",
+                ),
+              },
             }));
             setShorts(validatedShorts);
             updateProject({ shortsExtracts: validatedShorts });
-            toast.success('Shorts extracted successfully');
+            toast.success("Shorts extracted successfully");
           }
         } catch (e) {
-          console.error('Parse error:', e);
+          console.error("Parse error:", e);
           setShorts(MOCK_SHORTS);
         }
       }
     } catch {
-      toast.error('Failed to generate shorts');
+      toast.error("Failed to generate shorts");
     } finally {
       setLocalIsGenerating(false);
     }
@@ -255,7 +315,7 @@ Return as valid JSON array of exactly 3 shorts. Make them genuinely viral-worthy
 
   const generateThumbnailImage = async (short: ShortsExtract) => {
     if (isImageGenerating(short.id)) return;
-    
+
     const prompt = `Create a viral YouTube Shorts thumbnail (9:16 vertical aspect ratio): ${short.suggestedThumbnail}
     
 Style requirements:
@@ -269,14 +329,17 @@ The thumbnail should make viewers instantly curious and want to click.`;
 
     const response = await generateImage(prompt, short.id);
     if (response?.success) {
-      setGeneratedThumbnails(prev => ({ ...prev, [short.id]: response.data }));
+      setGeneratedThumbnails((prev) => ({
+        ...prev,
+        [short.id]: response.data,
+      }));
     }
   };
 
   const regenerateThumbnailImage = async (shortId: string) => {
-    const short = shorts.find(s => s.id === shortId);
+    const short = shorts.find((s) => s.id === shortId);
     if (!short || isImageGenerating(shortId)) return;
-    
+
     const prompt = `Create a viral YouTube Shorts thumbnail (9:16 vertical aspect ratio): ${short.suggestedThumbnail}
     
 Style requirements:
@@ -288,7 +351,7 @@ Style requirements:
 
     const response = await generateImage(prompt, shortId);
     if (response?.success) {
-      setGeneratedThumbnails(prev => ({ ...prev, [shortId]: response.data }));
+      setGeneratedThumbnails((prev) => ({ ...prev, [shortId]: response.data }));
     }
   };
 
@@ -302,40 +365,41 @@ ${short.hookText}
 ${short.fullContent}
 
 🏷️ Suggested Titles:
-${short.suggestedTitle.map((t, i) => `${i + 1}. ${t}`).join('\n')}
+${short.suggestedTitle.map((t, i) => `${i + 1}. ${t}`).join("\n")}
 
 #️⃣ Hashtags:
-${short.hashtags.join(' ')}
+${short.hashtags.join(" ")}
 
 ⏰ Best Time: ${short.bestPostingTime}`;
     navigator.clipboard.writeText(text);
     setCopiedId(short.id);
     setTimeout(() => setCopiedId(null), 2000);
-    toast.success('Short copied to clipboard');
+    toast.success("Short copied to clipboard");
   };
 
   const pinShort = async (short: ShortsExtract) => {
     if (!currentProject) return;
 
-    const pinItem: Omit<PinnedItem, 'id' | 'pinnedAt'> = {
-      userId: 'personal_user',
-      itemType: 'shorts',
+    const pinItem: Omit<PinnedItem, "id" | "pinnedAt"> = {
+      userId: "personal_user",
+      itemType: "shorts",
       content: short,
-      sourceProjectId: currentProject.id
+      sourceProjectId: currentProject.id,
     };
 
     const result = await db.addPinnedItem(pinItem);
     if (result.success) {
       addPinnedItem(result.data!);
-      toast.success('Short pinned');
+      toast.success("Short pinned");
     }
   };
 
   const exportAllShorts = () => {
     if (shorts.length === 0) return;
 
-    const content = shorts.map((short, i) => {
-      return `## Short ${i + 1}: ${short.title}
+    const content = shorts
+      .map((short, i) => {
+        return `## Short ${i + 1}: ${short.title}
 
 **Type:** ${short.contentType.toUpperCase()}
 **Duration:** ${short.duration} seconds
@@ -349,13 +413,13 @@ ${short.hookText}
 ${short.fullContent}
 
 ### Suggested Titles
-${short.suggestedTitle.map((t, i) => `${i + 1}. ${t}`).join('\n')}
+${short.suggestedTitle.map((t, i) => `${i + 1}. ${t}`).join("\n")}
 
 ### Thumbnail Idea
 ${short.suggestedThumbnail}
 
 ### Hashtags
-${short.hashtags.join(' ')}
+${short.hashtags.join(" ")}
 
 ### Best Posting Time
 ${short.bestPostingTime}
@@ -365,19 +429,20 @@ ${short.bestPostingTime}
 - TikTok: ${short.crossPlatformAdaptation.tiktok}
 
 ---`;
-    }).join('\n\n');
+      })
+      .join("\n\n");
 
-    const blob = new Blob([content], { type: 'text/markdown' });
+    const blob = new Blob([content], { type: "text/markdown" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
     a.download = `shorts-${currentProject?.id || Date.now()}.md`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success('Shorts exported');
+    toast.success("Shorts exported");
   };
 
-  const getTypeIcon = (type: ShortsExtract['contentType']) => {
+  const getTypeIcon = (type: ShortsExtract["contentType"]) => {
     return CONTENT_TYPE_ICONS[type] || Zap;
   };
 
@@ -385,7 +450,9 @@ ${short.bestPostingTime}
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-semibold font-sans text-foreground">Shorts Extractor</h2>
+          <h2 className="text-2xl font-semibold font-sans text-foreground">
+            Shorts Extractor
+          </h2>
           <p className="text-muted-foreground mt-1">
             Extract viral-worthy shorts from your script
           </p>
@@ -398,7 +465,10 @@ ${short.bestPostingTime}
               id="gen-thumbnails"
               className="data-[state=checked]:bg-primary"
             />
-            <Label htmlFor="gen-thumbnails" className="text-sm text-muted-foreground hidden md:inline">
+            <Label
+              htmlFor="gen-thumbnails"
+              className="text-sm text-muted-foreground hidden md:inline"
+            >
               Generate Thumbnails
             </Label>
           </div>
@@ -417,14 +487,16 @@ ${short.bestPostingTime}
             variant="outline"
             className="border-border"
           >
-            <RefreshCw className={`mr-2 h-4 w-4 ${localIsGenerating ? 'animate-spin' : ''}`} />
+            <RefreshCw
+              className={`mr-2 h-4 w-4 ${localIsGenerating ? "animate-spin" : ""}`}
+            />
             Regenerate
           </Button>
         </div>
       </div>
 
       {currentProject?.selectedScript && (
-        <Card className="bg-accent/50 border-accent">
+        <Card className="bg-primary/5 border-primary/20 rounded-2xl">
           <CardContent className="py-4">
             <div className="flex items-center gap-2 text-sm">
               <span className="text-muted-foreground">From Script:</span>
@@ -439,7 +511,10 @@ ${short.bestPostingTime}
       {localIsGenerating && shorts.length === 0 ? (
         <div className="space-y-4">
           {Array.from({ length: 3 }).map((_, i) => (
-            <Card key={i} className="bg-card border-border">
+            <Card
+              key={i}
+              className="bg-card/60 backdrop-blur-md border-border/50 rounded-2xl shadow-sm"
+            >
               <CardContent className="p-6">
                 <div className="space-y-4">
                   <div className="flex items-center gap-4">
@@ -461,7 +536,7 @@ ${short.bestPostingTime}
           ))}
         </div>
       ) : shorts.length === 0 ? (
-        <Card className="bg-card border-border border-dashed">
+        <Card className="bg-card/40 backdrop-blur-sm border-border/50 border-dashed rounded-2xl">
           <CardContent className="py-16 flex flex-col items-center justify-center text-center">
             <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
               <Scissors className="h-8 w-8 text-muted-foreground" />
@@ -470,7 +545,8 @@ ${short.bestPostingTime}
               No shorts extracted yet
             </h3>
             <p className="text-muted-foreground max-w-md mb-6">
-              Finalize a script first, then extract viral-worthy shorts for YouTube, Instagram, and TikTok.
+              Finalize a script first, then extract viral-worthy shorts for
+              YouTube, Instagram, and TikTok.
             </p>
             <Button
               onClick={handleGenerateShorts}
@@ -499,16 +575,25 @@ ${short.bestPostingTime}
               <Collapsible
                 key={short.id}
                 open={isExpanded}
-                onOpenChange={() => setExpandedShort(isExpanded ? null : short.id)}
+                onOpenChange={() =>
+                  setExpandedShort(isExpanded ? null : short.id)
+                }
               >
-              <Card className="bg-card border-border transition-all duration-200">
+                <Card
+                  className={`
+                bg-card/60 backdrop-blur-md border-border/50 rounded-2xl shadow-sm transition-all duration-300
+                ${isExpanded ? "ring-2 ring-primary/50 bg-primary/5 shadow-md" : "hover:shadow-md hover:border-primary/20"}
+              `}
+                >
                   <CollapsibleTrigger asChild>
                     <CardContent className="p-5 cursor-pointer">
                       <div className="flex items-start gap-4">
-                        <div className={`
+                        <div
+                          className={`
                           w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0
                           ${VIRAL_POTENTIAL_COLORS[short.viralPotential]}
-                        `}>
+                        `}
+                        >
                           <TypeIcon className="h-6 w-6" />
                         </div>
 
@@ -518,8 +603,14 @@ ${short.bestPostingTime}
                               <Clock className="h-3 w-3" />
                               {short.duration}s
                             </Badge>
-                            <Badge className={VIRAL_POTENTIAL_COLORS[short.viralPotential]}>
-                              {short.viralPotential === 'viral' && <Flame className="h-3 w-3 mr-1" />}
+                            <Badge
+                              className={
+                                VIRAL_POTENTIAL_COLORS[short.viralPotential]
+                              }
+                            >
+                              {short.viralPotential === "viral" && (
+                                <Flame className="h-3 w-3 mr-1" />
+                              )}
                               {short.viralPotential.toUpperCase()}
                             </Badge>
                             <Badge variant="secondary">
@@ -603,8 +694,12 @@ ${short.bestPostingTime}
                                     key={i}
                                     className="flex items-center gap-2 p-2 bg-muted/50 rounded-md"
                                   >
-                                    <span className="text-xs text-muted-foreground">{i + 1}.</span>
-                                    <span className="text-sm text-foreground">{title}</span>
+                                    <span className="text-xs text-muted-foreground">
+                                      {i + 1}.
+                                    </span>
+                                    <span className="text-sm text-foreground">
+                                      {title}
+                                    </span>
                                   </div>
                                 ))}
                               </div>
@@ -616,7 +711,11 @@ ${short.bestPostingTime}
                               </h4>
                               <div className="flex flex-wrap gap-1">
                                 {short.hashtags.map((tag, i) => (
-                                  <Badge key={i} variant="secondary" className="text-xs">
+                                  <Badge
+                                    key={i}
+                                    variant="secondary"
+                                    className="text-xs"
+                                  >
                                     {tag}
                                   </Badge>
                                 ))}
@@ -628,7 +727,9 @@ ${short.bestPostingTime}
                                 <Clock3 className="h-4 w-4 text-primary" />
                                 Best Posting Time
                               </h4>
-                              <p className="text-sm text-muted-foreground">{short.bestPostingTime}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {short.bestPostingTime}
+                              </p>
                             </div>
 
                             <div>
@@ -638,11 +739,15 @@ ${short.bestPostingTime}
                               <div className="space-y-2">
                                 <div className="flex items-start gap-2 p-2 bg-muted/50 rounded-md">
                                   <Instagram className="h-4 w-4 text-pink-500 mt-0.5" />
-                                  <span className="text-sm text-muted-foreground">{short.crossPlatformAdaptation.instagram}</span>
+                                  <span className="text-sm text-muted-foreground">
+                                    {short.crossPlatformAdaptation.instagram}
+                                  </span>
                                 </div>
                                 <div className="flex items-start gap-2 p-2 bg-muted/50 rounded-md">
                                   <Music2 className="h-4 w-4 text-foreground mt-0.5" />
-                                  <span className="text-sm text-muted-foreground">{short.crossPlatformAdaptation.tiktok}</span>
+                                  <span className="text-sm text-muted-foreground">
+                                    {short.crossPlatformAdaptation.tiktok}
+                                  </span>
                                 </div>
                               </div>
                             </div>
@@ -657,7 +762,7 @@ ${short.bestPostingTime}
                           <p className="text-sm text-muted-foreground bg-muted/50 rounded-md p-3 mb-3">
                             {short.suggestedThumbnail}
                           </p>
-                          
+
                           {generateThumbnails && (
                             <div className="space-y-3">
                               {!hasThumbnail ? (
@@ -672,7 +777,9 @@ ${short.bestPostingTime}
                                   ) : (
                                     <Wand2 className="mr-2 h-4 w-4" />
                                   )}
-                                  {isGeneratingThumbnail ? 'Generating...' : 'Generate Thumbnail'}
+                                  {isGeneratingThumbnail
+                                    ? "Generating..."
+                                    : "Generate Thumbnail"}
                                 </Button>
                               ) : (
                                 <>
@@ -683,7 +790,9 @@ ${short.bestPostingTime}
                                     />
                                   </div>
                                   <Button
-                                    onClick={() => regenerateThumbnailImage(short.id)}
+                                    onClick={() =>
+                                      regenerateThumbnailImage(short.id)
+                                    }
                                     disabled={isGeneratingThumbnail}
                                     variant="outline"
                                     size="sm"
@@ -712,7 +821,7 @@ ${short.bestPostingTime}
                             ) : (
                               <Copy className="mr-2 h-4 w-4" />
                             )}
-                            {copiedId === short.id ? 'Copied!' : 'Copy Script'}
+                            {copiedId === short.id ? "Copied!" : "Copy Script"}
                           </Button>
                           <Button
                             onClick={() => pinShort(short)}
@@ -732,7 +841,7 @@ ${short.bestPostingTime}
         </div>
       )}
 
-      <Card className="bg-secondary/50 border-secondary">
+      <Card className="bg-secondary/30 backdrop-blur-sm border-secondary/50 rounded-2xl">
         <CardContent className="pt-4">
           <h4 className="text-sm font-sans font-medium flex items-center gap-2 mb-3">
             <Sparkles className="h-4 w-4" />
@@ -740,7 +849,10 @@ ${short.bestPostingTime}
           </h4>
           <ul className="text-sm text-muted-foreground space-y-1">
             <li>• Hook viewers in the first 2 seconds - this is critical</li>
-            <li>• Create curiosity gaps that make viewers want to see the full video</li>
+            <li>
+              • Create curiosity gaps that make viewers want to see the full
+              video
+            </li>
             <li>• Use pattern interrupts to maintain attention throughout</li>
             <li>• End with a satisfying payoff or cliffhanger</li>
             <li>• Optimize for vertical viewing (9:16 aspect ratio)</li>

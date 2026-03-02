@@ -1,19 +1,19 @@
 // Module 5: Metadata Suite - Titles, Descriptions, Thumbnails
-import { useState, useEffect, useRef } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Switch } from '@/components/ui/switch';
-import { 
-  Bookmark, 
-  Check, 
-  RefreshCw, 
-  Sparkles, 
+import { useState, useEffect, useRef } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Switch } from "@/components/ui/switch";
+import {
+  Bookmark,
+  Check,
+  RefreshCw,
+  Sparkles,
   Type,
   FileText,
   Image as ImageIcon,
@@ -21,49 +21,65 @@ import {
   CheckCheck,
   Download,
   Wand2,
-  Tag
-} from 'lucide-react';
-import { toast } from 'sonner';
-import { useProjectStore } from '@/state/projectStore';
-import { useTextGeneration } from '@/hooks/useAIGeneration';
-import { useImageGenerationQueue } from '@/hooks/useImageGenerationQueue';
-import { getAIGateway } from '@/services/ai-provider';
-import { getDatabaseGateway } from '@/services/db-adapter';
-import { ImageViewer } from '@/components/ImageViewer';
-import { MOCK_TITLES, MOCK_THUMBNAIL_CONCEPTS } from '@/data/mock-metadata';
-import type { VideoMetadata, PinnedItem, ThumbnailConcept } from '@/types';
+  Tag,
+} from "lucide-react";
+import { toast } from "sonner";
+import { useProjectStore } from "@/state/projectStore";
+import { useTextGeneration } from "@/hooks/useAIGeneration";
+import { useImageGenerationQueue } from "@/hooks/useImageGenerationQueue";
+import { getAIGateway } from "@/services/ai-provider";
+import { getDatabaseGateway } from "@/services/db-adapter";
+import { ImageViewer } from "@/components/ImageViewer";
+import { MOCK_TITLES, MOCK_THUMBNAIL_CONCEPTS } from "@/data/mock-metadata";
+import type { VideoMetadata, PinnedItem, ThumbnailConcept } from "@/types";
 
 export function MetadataSuite() {
-  const { currentProject, currentStage, updateProject, finalizeMetadata, addPinnedItem } = useProjectStore();
+  const {
+    currentProject,
+    currentStage,
+    updateProject,
+    finalizeMetadata,
+    addPinnedItem,
+  } = useProjectStore();
   const { generate: generateText } = useTextGeneration();
-  const { generateImage, isGenerating: isImageGenerating, isAnyGenerating } = useImageGenerationQueue();
+  const {
+    generateImage,
+    isGenerating: isImageGenerating,
+    isAnyGenerating,
+  } = useImageGenerationQueue();
 
-  const [activeTab, setActiveTab] = useState('titles');
-  
+  const [activeTab, setActiveTab] = useState("titles");
+
   const [titles, setTitles] = useState<string[]>(() => {
-    if (currentProject?.titleSuggestions?.length) return currentProject.titleSuggestions;
+    if (currentProject?.titleSuggestions?.length)
+      return currentProject.titleSuggestions;
     return getAIGateway().isAvailable() ? [] : MOCK_TITLES;
   });
-  
-  const [selectedTitle, setSelectedTitle] = useState<string>('');
-  const [customTitle, setCustomTitle] = useState('');
-  
+
+  const [selectedTitle, setSelectedTitle] = useState<string>("");
+  const [customTitle, setCustomTitle] = useState("");
+
   const [description, setDescription] = useState(() => {
-    return currentProject?.selectedMetadata?.description || '';
+    return currentProject?.selectedMetadata?.description || "";
   });
-  
+
   const [tags, setTags] = useState<string[]>([]);
-  
+
   const [thumbnailConcepts, setThumbnailConcepts] = useState(() => {
-    if (currentProject?.thumbnailConcepts?.length) return currentProject.thumbnailConcepts;
+    if (currentProject?.thumbnailConcepts?.length)
+      return currentProject.thumbnailConcepts;
     return getAIGateway().isAvailable() ? [] : MOCK_THUMBNAIL_CONCEPTS;
   });
-  
-  const [selectedThumbnail, setSelectedThumbnail] = useState<string>('');
+
+  const [selectedThumbnail, setSelectedThumbnail] = useState<string>("");
   const [generateThumbnail, setGenerateThumbnail] = useState(false);
-  const [generatedThumbnails, setGeneratedThumbnails] = useState<Record<string, string>>({});
+  const [generatedThumbnails, setGeneratedThumbnails] = useState<
+    Record<string, string>
+  >({});
   const [localIsGenerating, setLocalIsGenerating] = useState(false);
-  const [thumbnailPrompts, setThumbnailPrompts] = useState<Record<string, string>>({});
+  const [thumbnailPrompts, setThumbnailPrompts] = useState<
+    Record<string, string>
+  >({});
   const [copiedTitle, setCopiedTitle] = useState(false);
 
   const ai = getAIGateway();
@@ -75,39 +91,62 @@ export function MetadataSuite() {
 
   // Auto-generate if empty and arrived at this stage
   useEffect(() => {
-    if (currentStage === 'metadata' && !localIsGenerating) {
-      if (titles.length === 0 && ai.isAvailable() && currentProject && !titleGenerationStarted.current) {
+    if (currentStage === "metadata" && !localIsGenerating) {
+      if (
+        titles.length === 0 &&
+        ai.isAvailable() &&
+        currentProject &&
+        !titleGenerationStarted.current
+      ) {
         titleGenerationStarted.current = true;
         handleGenerateTitles();
       }
-      if (!description && ai.isAvailable() && currentProject && !descGenerationStarted.current) {
+      if (
+        !description &&
+        ai.isAvailable() &&
+        currentProject &&
+        !descGenerationStarted.current
+      ) {
         descGenerationStarted.current = true;
         handleGenerateDescription();
       }
     }
-  }, [currentStage, titles.length, description, currentProject, localIsGenerating]);
+  }, [
+    currentStage,
+    titles.length,
+    description,
+    currentProject,
+    localIsGenerating,
+  ]);
 
   // Auto-generate thumbnails when switching to tab
   useEffect(() => {
     if (
-      currentStage === 'metadata' && 
-      activeTab === 'thumbnail' && 
-      thumbnailConcepts.length === 0 && 
-      ai.isAvailable() && 
-      currentProject && 
+      currentStage === "metadata" &&
+      activeTab === "thumbnail" &&
+      thumbnailConcepts.length === 0 &&
+      ai.isAvailable() &&
+      currentProject &&
       !localIsGenerating &&
       !conceptGenerationStarted.current
     ) {
       conceptGenerationStarted.current = true;
       handleGenerateThumbnailConcepts();
     }
-  }, [currentStage, activeTab, thumbnailConcepts.length, currentProject, localIsGenerating]);
+  }, [
+    currentStage,
+    activeTab,
+    thumbnailConcepts.length,
+    currentProject,
+    localIsGenerating,
+  ]);
 
   const handleGenerateTitles = async () => {
     if (localIsGenerating) return;
     setLocalIsGenerating(true);
     try {
-      const topic = currentProject?.selectedTopic?.title || 'productivity video';
+      const topic =
+        currentProject?.selectedTopic?.title || "productivity video";
       const prompt = `You are a YouTube title expert specializing in viral, high-CTR titles. Generate exactly 10 engaging YouTube video titles for a video about: "${topic}"
 
 CRITICAL LANGUAGE REQUIREMENT:
@@ -137,18 +176,24 @@ Make them catchy, clickable, and curiosity-inducing. Use emojis strategically (1
 
 Return as valid JSON array of strings only. No explanations.`;
 
-      const response = await generateText({ prompt, type: 'text', format: 'json' });
-      
+      const response = await generateText({
+        prompt,
+        type: "text",
+        format: "json",
+      });
+
       if (response.success) {
         try {
           const jsonMatch = response.data.match(/\[[\s\S]*\]/);
-          const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(response.data);
-            const validatedTitles = parsed
-              .filter((t: unknown) => t !== null && t !== undefined)
-              .map((t: unknown) => String(t));
-            setTitles(validatedTitles);
-            updateProject({ titleSuggestions: validatedTitles });
-            toast.success('Titles generated');
+          const parsed = jsonMatch
+            ? JSON.parse(jsonMatch[0])
+            : JSON.parse(response.data);
+          const validatedTitles = parsed
+            .filter((t: unknown) => t !== null && t !== undefined)
+            .map((t: unknown) => String(t));
+          setTitles(validatedTitles);
+          updateProject({ titleSuggestions: validatedTitles });
+          toast.success("Titles generated");
         } catch (e) {
           setTitles(MOCK_TITLES);
         }
@@ -162,12 +207,15 @@ Return as valid JSON array of strings only. No explanations.`;
 
   const handleGenerateDescription = async () => {
     try {
-      const topic = currentProject?.selectedTopic?.title || 'productivity';
-      const script = currentProject?.selectedScript?.content?.slice(0, 500) || '';
+      const topic = currentProject?.selectedTopic?.title || "productivity";
+      const script =
+        currentProject?.selectedScript?.content?.slice(0, 500) || "";
       const scenes = currentProject?.selectedStoryboard?.scenes || [];
-      
-      const timestamps = scenes.map(s => `${s.timestampStart} - ${s.scriptSegment.slice(0, 50)}...`).join('\n');
-      
+
+      const timestamps = scenes
+        .map((s) => `${s.timestampStart} - ${s.scriptSegment.slice(0, 50)}...`)
+        .join("\n");
+
       const prompt = `Write an SEO-optimized YouTube video description that drives engagement and discovery.
 
 Video Topic: "${topic}"
@@ -217,17 +265,17 @@ CRITICAL REQUIREMENTS:
 
 Return the complete description.`;
 
-      const response = await generateText({ prompt, type: 'text' });
+      const response = await generateText({ prompt, type: "text" });
       if (response.success) {
         setDescription(response.data);
         const tagMatch = response.data.match(/#[\w]+/g);
         if (tagMatch) {
           setTags(tagMatch.map((t: string) => t.slice(1)));
         }
-        toast.success('Description generated');
+        toast.success("Description generated");
       }
     } catch (error) {
-       toast.error('Failed to generate description');
+      toast.error("Failed to generate description");
     }
   };
 
@@ -235,28 +283,35 @@ Return the complete description.`;
     if (localIsGenerating) return;
     setLocalIsGenerating(true);
     try {
-      const topic = currentProject?.selectedTopic?.title || 'productivity video';
+      const topic =
+        currentProject?.selectedTopic?.title || "productivity video";
       const prompt = `Generate 5 YouTube thumbnail concepts for: "${topic}"
 Return as valid JSON array with fields: id, title, description, layout, textOverlay, colorScheme`;
 
-      const response = await generateText({ prompt, type: 'text', format: 'json' });
-      
+      const response = await generateText({
+        prompt,
+        type: "text",
+        format: "json",
+      });
+
       if (response.success) {
         try {
           const jsonMatch = response.data.match(/\[[\s\S]*\]/);
-          const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(response.data);
+          const parsed = jsonMatch
+            ? JSON.parse(jsonMatch[0])
+            : JSON.parse(response.data);
           if (Array.isArray(parsed) && parsed.length > 0) {
             const validatedConcepts = parsed.map((c, i) => ({
               id: String(c.id || `thumb-${i + 1}`),
-              title: String(c.title || 'Untitled'),
-              description: String(c.description || ''),
-              layout: String(c.layout || ''),
-              textOverlay: String(c.textOverlay || ''),
-              colorScheme: String(c.colorScheme || '')
+              title: String(c.title || "Untitled"),
+              description: String(c.description || ""),
+              layout: String(c.layout || ""),
+              textOverlay: String(c.textOverlay || ""),
+              colorScheme: String(c.colorScheme || ""),
             }));
             setThumbnailConcepts(validatedConcepts);
             updateProject({ thumbnailConcepts: validatedConcepts });
-            toast.success('Thumbnails generated');
+            toast.success("Thumbnails generated");
           }
         } catch {
           setThumbnailConcepts(MOCK_THUMBNAIL_CONCEPTS);
@@ -269,20 +324,23 @@ Return as valid JSON array with fields: id, title, description, layout, textOver
     }
   };
 
-const generateThumbnailImage = async (concept: ThumbnailConcept) => {
+  const generateThumbnailImage = async (concept: ThumbnailConcept) => {
     if (isImageGenerating(concept.id)) return;
-    
+
     const prompt = `Create a YouTube thumbnail: ${concept.description}. 
     Layout: ${concept.layout}. 
     Text: ${concept.textOverlay}.
     Style: ${concept.colorScheme}. 
     High quality, eye-catching, professional.`;
 
-    setThumbnailPrompts(prev => ({ ...prev, [concept.id]: prompt }));
+    setThumbnailPrompts((prev) => ({ ...prev, [concept.id]: prompt }));
 
     const response = await generateImage(prompt, concept.id);
     if (response?.success) {
-      setGeneratedThumbnails(prev => ({ ...prev, [concept.id]: response.data }));
+      setGeneratedThumbnails((prev) => ({
+        ...prev,
+        [concept.id]: response.data,
+      }));
     }
   };
 
@@ -290,10 +348,13 @@ const generateThumbnailImage = async (concept: ThumbnailConcept) => {
     const storedPrompt = thumbnailPrompts[conceptId];
     if (!storedPrompt) return;
     if (isImageGenerating(conceptId)) return;
-    
+
     const response = await generateImage(storedPrompt, conceptId);
     if (response?.success) {
-      setGeneratedThumbnails(prev => ({ ...prev, [conceptId]: response.data }));
+      setGeneratedThumbnails((prev) => ({
+        ...prev,
+        [conceptId]: response.data,
+      }));
     }
   };
 
@@ -301,21 +362,21 @@ const generateThumbnailImage = async (concept: ThumbnailConcept) => {
     navigator.clipboard.writeText(title);
     setCopiedTitle(true);
     setTimeout(() => setCopiedTitle(false), 2000);
-    toast.success('Title copied');
+    toast.success("Title copied");
   };
 
   const pinTitle = async (title: string) => {
     if (!currentProject) return;
-    const pinItem: Omit<PinnedItem, 'id' | 'pinnedAt'> = {
-      userId: 'personal_user',
-      itemType: 'title',
+    const pinItem: Omit<PinnedItem, "id" | "pinnedAt"> = {
+      userId: "personal_user",
+      itemType: "title",
       content: title,
-      sourceProjectId: currentProject.id
+      sourceProjectId: currentProject.id,
     };
     const result = await db.addPinnedItem(pinItem);
     if (result.success) {
       addPinnedItem(result.data!);
-      toast.success('Title pinned');
+      toast.success("Title pinned");
     }
   };
 
@@ -324,30 +385,39 @@ const generateThumbnailImage = async (concept: ThumbnailConcept) => {
       title: selectedTitle || customTitle,
       description,
       tags,
-      thumbnailPrompt: thumbnailConcepts.find(c => c.id === selectedThumbnail)?.description || '',
-      thumbnailConcept: thumbnailConcepts.find(c => c.id === selectedThumbnail)?.title,
-      thumbnailLayout: thumbnailConcepts.find(c => c.id === selectedThumbnail)?.layout
+      thumbnailPrompt:
+        thumbnailConcepts.find((c) => c.id === selectedThumbnail)
+          ?.description || "",
+      thumbnailConcept: thumbnailConcepts.find(
+        (c) => c.id === selectedThumbnail,
+      )?.title,
+      thumbnailLayout: thumbnailConcepts.find((c) => c.id === selectedThumbnail)
+        ?.layout,
     };
-    
+
     finalizeMetadata(metadata);
-    toast.success('Metadata finalized! Now extract shorts for maximum reach.');
+    toast.success("Metadata finalized! Now extract shorts for maximum reach.");
   };
 
   const exportProject = () => {
     if (!currentProject) return;
-    const projectData = JSON.stringify({
-      project: currentProject,
-      exportedAt: new Date().toISOString(),
-      version: '1.0.0'
-    }, null, 2);
-    const blob = new Blob([projectData], { type: 'application/json' });
+    const projectData = JSON.stringify(
+      {
+        project: currentProject,
+        exportedAt: new Date().toISOString(),
+        version: "1.0.0",
+      },
+      null,
+      2,
+    );
+    const blob = new Blob([projectData], { type: "application/json" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
     a.download = `youtube-content-brief-${Date.now()}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success('Project exported');
+    toast.success("Project exported");
   };
 
   const canFinalize = (selectedTitle || customTitle) && description;
@@ -356,7 +426,9 @@ const generateThumbnailImage = async (concept: ThumbnailConcept) => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-semibold font-sans text-foreground">Metadata Suite</h2>
+          <h2 className="text-2xl font-semibold font-sans text-foreground">
+            Metadata Suite
+          </h2>
           <p className="text-muted-foreground mt-1">
             Create titles, descriptions, and thumbnail concepts
           </p>
@@ -372,16 +444,25 @@ const generateThumbnailImage = async (concept: ThumbnailConcept) => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3 bg-muted">
-          <TabsTrigger value="titles" className="data-[state=active]:bg-background gap-1">
+        <TabsList className="grid w-full grid-cols-3 bg-muted/80 backdrop-blur-sm rounded-xl p-1 mb-2 shadow-sm">
+          <TabsTrigger
+            value="titles"
+            className="data-[state=active]:bg-background gap-1"
+          >
             <Type className="h-4 w-4" />
             Titles
           </TabsTrigger>
-          <TabsTrigger value="description" className="data-[state=active]:bg-background gap-1">
+          <TabsTrigger
+            value="description"
+            className="data-[state=active]:bg-background gap-1"
+          >
             <FileText className="h-4 w-4" />
             Description
           </TabsTrigger>
-          <TabsTrigger value="thumbnail" className="data-[state=active]:bg-background gap-1">
+          <TabsTrigger
+            value="thumbnail"
+            className="data-[state=active]:bg-background gap-1"
+          >
             <ImageIcon className="h-4 w-4" />
             Thumbnail
           </TabsTrigger>
@@ -390,7 +471,9 @@ const generateThumbnailImage = async (concept: ThumbnailConcept) => {
         {/* Titles Tab */}
         <TabsContent value="titles" className="mt-6 space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-medium font-sans text-foreground">Choose a Title</h3>
+            <h3 className="text-lg font-medium font-sans text-foreground">
+              Choose a Title
+            </h3>
             <Button
               onClick={handleGenerateTitles}
               disabled={localIsGenerating}
@@ -398,26 +481,34 @@ const generateThumbnailImage = async (concept: ThumbnailConcept) => {
               size="sm"
               className="border-border"
             >
-              <RefreshCw className={`mr-2 h-4 w-4 ${localIsGenerating ? 'animate-spin' : ''}`} />
+              <RefreshCw
+                className={`mr-2 h-4 w-4 ${localIsGenerating ? "animate-spin" : ""}`}
+              />
               Refresh
             </Button>
           </div>
 
-          <RadioGroup value={selectedTitle} onValueChange={setSelectedTitle} className="space-y-3">
+          <RadioGroup
+            value={selectedTitle}
+            onValueChange={setSelectedTitle}
+            className="space-y-3"
+          >
             {titles.map((title, i) => (
               <div
                 key={i}
                 className={`
-                  flex items-center justify-between p-4 rounded-lg border transition-all
-                  ${selectedTitle === title 
-                    ? 'border-primary bg-primary/10' 
-                    : 'border-border bg-card hover:border-primary/50'}
+                  flex items-center justify-between p-5 rounded-2xl border transition-all duration-300 shadow-sm
+                  ${
+                    selectedTitle === title
+                      ? "border-primary ring-1 ring-primary bg-primary/5"
+                      : "border-border/50 bg-card/60 backdrop-blur-md hover:border-primary/30 hover:shadow-md"
+                  }
                 `}
               >
                 <div className="flex items-center gap-3 flex-1">
                   <RadioGroupItem value={title} id={`title-${i}`} />
-                  <Label 
-                    htmlFor={`title-${i}`} 
+                  <Label
+                    htmlFor={`title-${i}`}
                     className="flex-1 cursor-pointer font-sans text-foreground"
                   >
                     {title}
@@ -450,22 +541,24 @@ const generateThumbnailImage = async (concept: ThumbnailConcept) => {
           </RadioGroup>
 
           <div className="space-y-2">
-            <Label className="font-sans text-foreground">Or write your own:</Label>
+            <Label className="font-sans text-foreground">
+              Or write your own:
+            </Label>
             <Input
               value={customTitle}
               onChange={(e) => {
                 setCustomTitle(e.target.value);
-                setSelectedTitle('');
+                setSelectedTitle("");
               }}
               placeholder="Enter custom title..."
-              className="bg-input border-input"
+              className="bg-input/50 border-input rounded-xl"
             />
           </div>
 
           {selectedTitle && (
             <Button
-              onClick={() => setActiveTab('description')}
-              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+              onClick={() => setActiveTab("description")}
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-2xl py-6 shadow-md transition-all hover:shadow-xl"
             >
               <Check className="mr-2 h-4 w-4" />
               Confirm Title & Continue
@@ -476,7 +569,9 @@ const generateThumbnailImage = async (concept: ThumbnailConcept) => {
         {/* Description Tab */}
         <TabsContent value="description" className="mt-6 space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-medium font-sans text-foreground">Video Description</h3>
+            <h3 className="text-lg font-medium font-sans text-foreground">
+              Video Description
+            </h3>
             <Button
               onClick={handleGenerateDescription}
               variant="outline"
@@ -491,7 +586,7 @@ const generateThumbnailImage = async (concept: ThumbnailConcept) => {
           <Textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="min-h-[300px] font-serif text-sm bg-input border-input"
+            className="min-h-[300px] font-sans text-[15px] leading-relaxed bg-input/50 border-input rounded-2xl p-4 shadow-inner"
             placeholder="Video description with timestamps, key points, and CTAs..."
           />
 
@@ -503,16 +598,18 @@ const generateThumbnailImage = async (concept: ThumbnailConcept) => {
               </Label>
               <div className="flex flex-wrap gap-2">
                 {tags.map((tag, i) => (
-                  <Badge key={i} variant="secondary">#{tag}</Badge>
+                  <Badge key={i} variant="secondary">
+                    #{tag}
+                  </Badge>
                 ))}
               </div>
             </div>
           )}
 
           <Button
-            onClick={() => setActiveTab('thumbnail')}
+            onClick={() => setActiveTab("thumbnail")}
             disabled={!description}
-            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-2xl py-6 shadow-md transition-all hover:shadow-xl"
           >
             <Check className="mr-2 h-4 w-4" />
             Confirm Description & Continue
@@ -522,7 +619,9 @@ const generateThumbnailImage = async (concept: ThumbnailConcept) => {
         {/* Thumbnail Tab */}
         <TabsContent value="thumbnail" className="mt-6 space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-medium font-sans text-foreground">Thumbnail Concepts</h3>
+            <h3 className="text-lg font-medium font-sans text-foreground">
+              Thumbnail Concepts
+            </h3>
             <div className="flex gap-2">
               <div className="flex items-center gap-2">
                 <Switch
@@ -531,7 +630,10 @@ const generateThumbnailImage = async (concept: ThumbnailConcept) => {
                   id="gen-thumb"
                   className="data-[state=checked]:bg-primary"
                 />
-                <Label htmlFor="gen-thumb" className="text-sm text-muted-foreground">
+                <Label
+                  htmlFor="gen-thumb"
+                  className="text-sm text-muted-foreground"
+                >
                   Generate Images
                 </Label>
               </div>
@@ -542,52 +644,76 @@ const generateThumbnailImage = async (concept: ThumbnailConcept) => {
                 size="sm"
                 className="border-border"
               >
-                <RefreshCw className={`mr-2 h-4 w-4 ${localIsGenerating ? 'animate-spin' : ''}`} />
+                <RefreshCw
+                  className={`mr-2 h-4 w-4 ${localIsGenerating ? "animate-spin" : ""}`}
+                />
                 Refresh Concepts
               </Button>
             </div>
           </div>
 
-          <RadioGroup 
-            value={selectedThumbnail} 
+          <RadioGroup
+            value={selectedThumbnail}
             onValueChange={setSelectedThumbnail}
             className="grid grid-cols-1 md:grid-cols-2 gap-4"
           >
             {thumbnailConcepts.map((concept) => {
               const isGenerating = isImageGenerating(concept.id);
               const hasGeneratedImage = !!generatedThumbnails[concept.id];
-              
+
               return (
                 <Card
                   key={concept.id}
                   className={`
-                    cursor-pointer transition-all overflow-hidden
-                    ${selectedThumbnail === concept.id 
-                      ? 'ring-2 ring-primary' 
-                      : 'hover:shadow-md'}
+                    cursor-pointer transition-all duration-300 overflow-hidden bg-card/60 backdrop-blur-md border-border/50 rounded-2xl shadow-sm
+                    ${
+                      selectedThumbnail === concept.id
+                        ? "ring-2 ring-primary/50 bg-primary/5 shadow-md"
+                        : "hover:shadow-md hover:border-primary/20"
+                    }
                   `}
                   onClick={() => setSelectedThumbnail(concept.id)}
                 >
-                  <CardContent className="p-4">
-                    <div className="flex items-start gap-3">
-                      <RadioGroupItem value={concept.id} id={concept.id} className="mt-1" />
+                  <CardContent className="p-5">
+                    <div className="flex items-start gap-4">
+                      <RadioGroupItem
+                        value={concept.id}
+                        id={concept.id}
+                        className="mt-1"
+                      />
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-sans font-medium text-foreground">{concept.title}</h4>
-                        <p className="text-sm text-muted-foreground mt-1">{concept.description}</p>
-                        
+                        <h4 className="font-sans font-medium text-foreground">
+                          {concept.title}
+                        </h4>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {concept.description}
+                        </p>
+
                         {/* Concept Details */}
                         <div className="mt-3 space-y-1.5">
                           <div className="text-xs">
-                            <span className="text-muted-foreground">Layout: </span>
-                            <span className="text-foreground">{concept.layout}</span>
+                            <span className="text-muted-foreground">
+                              Layout:{" "}
+                            </span>
+                            <span className="text-foreground">
+                              {concept.layout}
+                            </span>
                           </div>
                           <div className="text-xs">
-                            <span className="text-muted-foreground">Text: </span>
-                            <span className="font-mono bg-muted px-1 rounded">{concept.textOverlay}</span>
+                            <span className="text-muted-foreground">
+                              Text:{" "}
+                            </span>
+                            <span className="font-mono bg-muted px-1 rounded">
+                              {concept.textOverlay}
+                            </span>
                           </div>
                           <div className="text-xs">
-                            <span className="text-muted-foreground">Colors: </span>
-                            <span className="text-foreground">{concept.colorScheme}</span>
+                            <span className="text-muted-foreground">
+                              Colors:{" "}
+                            </span>
+                            <span className="text-foreground">
+                              {concept.colorScheme}
+                            </span>
                           </div>
                         </div>
 
@@ -610,7 +736,9 @@ const generateThumbnailImage = async (concept: ThumbnailConcept) => {
                                 ) : (
                                   <Wand2 className="mr-2 h-3 w-3" />
                                 )}
-                                {isGenerating ? 'Generating...' : 'Generate Preview'}
+                                {isGenerating
+                                  ? "Generating..."
+                                  : "Generate Preview"}
                               </Button>
                             ) : (
                               <div className="flex gap-2">
@@ -638,12 +766,12 @@ const generateThumbnailImage = async (concept: ThumbnailConcept) => {
 
                         {/* Generated Image Preview - Similar to StoryboardEngine */}
                         {hasGeneratedImage && (
-                          <div 
+                          <div
                             className="mt-3 border rounded-md overflow-hidden"
                             onClick={(e) => e.stopPropagation()}
                           >
                             <ImageViewer
-                              src={generatedThumbnails[concept.id]} 
+                              src={generatedThumbnails[concept.id]}
                               alt={`${concept.title} preview`}
                             />
                           </div>
@@ -659,7 +787,7 @@ const generateThumbnailImage = async (concept: ThumbnailConcept) => {
           <Button
             onClick={handleFinalizeMetadata}
             disabled={!canFinalize || localIsGenerating || isAnyGenerating}
-            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-full py-6"
+            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-2xl py-6 shadow-md transition-all hover:shadow-xl"
           >
             <Check className="mr-2 h-5 w-5" />
             Finalize Metadata & Continue to Shorts

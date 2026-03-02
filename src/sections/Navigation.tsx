@@ -1,117 +1,154 @@
 // Navigation Stepper and Layout Component
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { toast } from 'sonner';
-import { 
-  Upload, 
-  Lightbulb, 
-  FileText, 
-  Clapperboard, 
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { toast } from "sonner";
+import {
+  Upload,
+  Lightbulb,
+  FileText,
+  Clapperboard,
   Tag,
   Check,
   Database,
   Cloud,
   Sparkles,
   Menu,
-  X,
   Bookmark,
   ChevronRight,
   Plus,
   Image as ImageIcon,
   Scissors,
-  User
-} from 'lucide-react';
-import { useProjectStore } from '@/state/projectStore';
-import { PinnedItemsSidebar } from '@/sections/PinnedItemsSidebar';
-import { SettingsDialog, AIModeToggle } from '@/components/SettingsDialog';
-import { ThemeToggle } from '@/components/theme-toggle';
-import type { WorkflowStage } from '@/types';
+  User,
+} from "lucide-react";
+import { useProjectStore } from "@/state/projectStore";
+import { PinnedItemsSidebar } from "@/sections/PinnedItemsSidebar";
+import { SettingsDialog, AIModeToggle } from "@/components/SettingsDialog";
+import { ThemeToggle } from "@/components/theme-toggle";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import type { WorkflowStage } from "@/types";
 
 interface NavigationProps {
   currentStage: WorkflowStage;
   onStageChange: (stage: WorkflowStage) => void;
 }
 
-const STAGES: { id: WorkflowStage; label: string; icon: React.ElementType }[] = [
-  { id: 'ingestion', label: 'Data', icon: Upload },
-  { id: 'topics', label: 'Topics', icon: Lightbulb },
-  { id: 'script', label: 'Script', icon: FileText },
-  { id: 'storyboard', label: 'Visuals', icon: Clapperboard },
-  { id: 'metadata', label: 'Meta', icon: Tag },
-  { id: 'shorts', label: 'Shorts', icon: Scissors },
-  { id: 'complete', label: 'Done', icon: Check },
-];
+const STAGES: { id: WorkflowStage; label: string; icon: React.ElementType }[] =
+  [
+    { id: "ingestion", label: "Data", icon: Upload },
+    { id: "topics", label: "Topics", icon: Lightbulb },
+    { id: "script", label: "Script", icon: FileText },
+    { id: "storyboard", label: "Visuals", icon: Clapperboard },
+    { id: "metadata", label: "Meta", icon: Tag },
+    { id: "shorts", label: "Shorts", icon: Scissors },
+    { id: "complete", label: "Done", icon: Check },
+  ];
 
-const EXTRA_SECTIONS: { id: WorkflowStage; label: string; icon: React.ElementType }[] = [
-  { id: 'imagegen', label: 'Image Gen', icon: ImageIcon },
-  { id: 'profile', label: 'Profile', icon: User },
+const EXTRA_SECTIONS: {
+  id: WorkflowStage;
+  label: string;
+  icon: React.ElementType;
+}[] = [
+  { id: "imagegen", label: "Image Gen", icon: ImageIcon },
+  { id: "profile", label: "Profile", icon: User },
 ];
 
 const STATUS_COLORS = {
-  connected: 'bg-chart-1',
-  disconnected: 'bg-destructive',
-  mock: 'bg-chart-3',
-  unknown: 'bg-muted'
+  connected: "bg-chart-1",
+  disconnected: "bg-destructive",
+  mock: "bg-chart-3",
+  unknown: "bg-muted",
 };
 
 export function Navigation({ currentStage, onStageChange }: NavigationProps) {
-  const { currentProject, pinnedItems, serviceStatus, isGenerating, createNewProject: storeCreateNewProject } = useProjectStore();
+  const {
+    currentProject,
+    pinnedItems,
+    serviceStatus,
+    isGenerating,
+    createNewProject: storeCreateNewProject,
+  } = useProjectStore();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showPinnedSidebar, setShowPinnedSidebar] = useState(false);
 
   const pinnedCount = pinnedItems.length;
 
   const getStageStatus = (stageId: WorkflowStage) => {
-    if (stageId === 'imagegen' || stageId === 'profile') {
-      return currentStage === stageId ? 'active' : 'available';
+    if (stageId === "imagegen" || stageId === "profile") {
+      return currentStage === stageId ? "active" : "available";
     }
 
-    if (!currentProject) return 'locked';
+    if (!currentProject) return "locked";
 
-    const stageOrder = ['ingestion', 'topics', 'script', 'storyboard', 'metadata', 'shorts', 'complete'];
+    const stageOrder = [
+      "ingestion",
+      "topics",
+      "script",
+      "storyboard",
+      "metadata",
+      "shorts",
+      "complete",
+    ];
     const currentIndex = stageOrder.indexOf(currentStage);
     const stageIndex = stageOrder.indexOf(stageId);
 
-    if (stageIndex < currentIndex) return 'completed';
-    if (stageId === currentStage) return 'active';
-    if (stageIndex === currentIndex + 1) return 'available';
-    return 'locked';
+    if (stageIndex < currentIndex) return "completed";
+    if (stageId === currentStage) return "active";
+    if (stageIndex === currentIndex + 1) return "available";
+    return "locked";
   };
 
   const getLockedReason = (stageId: WorkflowStage): string => {
-    if (!currentProject) return 'Create a project first';
-    
+    if (!currentProject) return "Create a project first";
+
     const stageLabels: Record<string, string> = {
-      ingestion: 'Data',
-      topics: 'Topics', 
-      script: 'Script',
-      storyboard: 'Visuals',
-      metadata: 'Meta',
-      shorts: 'Shorts'
+      ingestion: "Data",
+      topics: "Topics",
+      script: "Script",
+      storyboard: "Visuals",
+      metadata: "Meta",
+      shorts: "Shorts",
     };
-    
-    const stageOrder = ['ingestion', 'topics', 'script', 'storyboard', 'metadata', 'shorts', 'complete'];
+
+    const stageOrder = [
+      "ingestion",
+      "topics",
+      "script",
+      "storyboard",
+      "metadata",
+      "shorts",
+      "complete",
+    ];
     const currentIndex = stageOrder.indexOf(currentStage);
-    
-    if (stageId === 'script' && !currentProject.selectedTopic) {
-      return 'Select a topic first';
+
+    if (stageId === "script" && !currentProject.selectedTopic) {
+      return "Select a topic first";
     }
-    if (stageId === 'storyboard' && !currentProject.selectedScript) {
-      return 'Finalize a script first';
+    if (stageId === "storyboard" && !currentProject.selectedScript) {
+      return "Finalize a script first";
     }
-    if (stageId === 'metadata' && !currentProject.selectedStoryboard) {
-      return 'Finalize storyboard first';
+    if (stageId === "metadata" && !currentProject.selectedStoryboard) {
+      return "Finalize storyboard first";
     }
-    if (stageId === 'shorts' && !currentProject.selectedMetadata) {
-      return 'Complete metadata first';
+    if (stageId === "shorts" && !currentProject.selectedMetadata) {
+      return "Complete metadata first";
     }
-    if (stageId === 'complete' && !currentProject.selectedMetadata) {
-      return 'Complete all stages first';
+    if (stageId === "complete" && !currentProject.selectedMetadata) {
+      return "Complete all stages first";
     }
-    
+
     const prevStage = stageOrder[currentIndex];
     return `Complete ${stageLabels[prevStage]} first`;
   };
@@ -119,7 +156,7 @@ export function Navigation({ currentStage, onStageChange }: NavigationProps) {
   const handleStageClick = (stageId: WorkflowStage) => {
     if (isGenerating) return;
     const status = getStageStatus(stageId);
-    if (status === 'locked') {
+    if (status === "locked") {
       return;
     }
     onStageChange(stageId);
@@ -128,14 +165,14 @@ export function Navigation({ currentStage, onStageChange }: NavigationProps) {
 
   const createNewProject = () => {
     storeCreateNewProject();
-    onStageChange('ingestion');
-    toast.success('New project created');
+    onStageChange("ingestion");
+    toast.success("New project created");
   };
 
   return (
     <>
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex flex-col w-64 bg-sidebar border-r border-sidebar-border h-screen sticky top-0">
+      <aside className="hidden lg:flex flex-col w-64 bg-sidebar/80 backdrop-blur-2xl border-r border-sidebar-border h-screen sticky top-0 z-40">
         {/* Logo */}
         <div className="p-4 border-b border-sidebar-border">
           <div className="flex items-center gap-2">
@@ -144,7 +181,9 @@ export function Navigation({ currentStage, onStageChange }: NavigationProps) {
               <h1 className="font-sans font-semibold text-sidebar-foreground text-sm">
                 Content OS
               </h1>
-              <p className="text-xs text-sidebar-foreground/60">YouTube Studio</p>
+              <p className="text-xs text-sidebar-foreground/60">
+                YouTube Studio
+              </p>
             </div>
           </div>
         </div>
@@ -166,70 +205,76 @@ export function Navigation({ currentStage, onStageChange }: NavigationProps) {
             {STAGES.map((stage) => {
               const Icon = stage.icon;
               const status = getStageStatus(stage.id);
-              
+
               const buttonContent = (
                 <button
                   key={stage.id}
                   onClick={() => handleStageClick(stage.id)}
-                  disabled={status === 'locked' || isGenerating}
+                  disabled={status === "locked" || isGenerating}
                   className={`
                     w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium
                     transition-colors duration-200
-                    ${status === 'active' 
-                      ? 'bg-sidebar-primary text-sidebar-primary-foreground' 
-                      : status === 'completed'
-                      ? 'text-sidebar-foreground hover:bg-sidebar-accent'
-                      : status === 'available'
-                      ? 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground'
-                      : 'text-sidebar-foreground/40 cursor-not-allowed'}
+                    ${
+                      status === "active"
+                        ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                        : status === "completed"
+                          ? "text-sidebar-foreground hover:bg-sidebar-accent"
+                          : status === "available"
+                            ? "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                            : "text-sidebar-foreground/40 cursor-not-allowed"
+                    }
                   `}
                 >
-                  <div className={`
+                  <div
+                    className={`
                     w-6 h-6 rounded-full flex items-center justify-center text-xs
-                    ${status === 'active' 
-                      ? 'bg-sidebar-primary-foreground text-sidebar-primary' 
-                      : status === 'completed'
-                      ? 'bg-chart-1 text-primary-foreground'
-                      : 'bg-sidebar-accent text-sidebar-accent-foreground'}
-                  `}>
-                    {status === 'completed' ? (
+                    ${
+                      status === "active"
+                        ? "bg-sidebar-primary-foreground text-sidebar-primary"
+                        : status === "completed"
+                          ? "bg-chart-1 text-primary-foreground"
+                          : "bg-sidebar-accent text-sidebar-accent-foreground"
+                    }
+                  `}
+                  >
+                    {status === "completed" ? (
                       <Check className="h-3 w-3" />
                     ) : (
                       <Icon className="h-3 w-3" />
                     )}
                   </div>
                   <span>{stage.label}</span>
-                  {status === 'active' && (
+                  {status === "active" && (
                     <ChevronRight className="ml-auto h-4 w-4" />
                   )}
                 </button>
               );
-              
-              if (status === 'locked') {
+
+              if (status === "locked") {
                 return (
                   <Tooltip key={stage.id}>
-                    <TooltipTrigger asChild>
-                      {buttonContent}
-                    </TooltipTrigger>
+                    <TooltipTrigger asChild>{buttonContent}</TooltipTrigger>
                     <TooltipContent side="right">
                       {getLockedReason(stage.id)}
                     </TooltipContent>
                   </Tooltip>
                 );
               }
-              
+
               return buttonContent;
             })}
           </nav>
-          
+
           {/* Extra Sections */}
           <div className="mt-6 pt-4 border-t border-sidebar-border">
-            <p className="text-xs text-sidebar-foreground/50 mb-2 px-3">Tools</p>
+            <p className="text-xs text-sidebar-foreground/50 mb-2 px-3">
+              Tools
+            </p>
             <nav className="space-y-1">
               {EXTRA_SECTIONS.map((section) => {
                 const Icon = section.icon;
                 const isActive = currentStage === section.id;
-                
+
                 return (
                   <button
                     key={section.id}
@@ -237,23 +282,27 @@ export function Navigation({ currentStage, onStageChange }: NavigationProps) {
                     className={`
                       w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium
                       transition-colors duration-200
-                      ${isActive 
-                        ? 'bg-sidebar-primary text-sidebar-primary-foreground' 
-                        : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground'}
+                      ${
+                        isActive
+                          ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                          : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                      }
                     `}
                   >
-                    <div className={`
+                    <div
+                      className={`
                       w-6 h-6 rounded-full flex items-center justify-center text-xs
-                      ${isActive
-                        ? 'bg-sidebar-primary-foreground text-sidebar-primary' 
-                        : 'bg-sidebar-accent text-sidebar-accent-foreground'}
-                    `}>
+                      ${
+                        isActive
+                          ? "bg-sidebar-primary-foreground text-sidebar-primary"
+                          : "bg-sidebar-accent text-sidebar-accent-foreground"
+                      }
+                    `}
+                    >
                       <Icon className="h-3 w-3" />
                     </div>
                     <span>{section.label}</span>
-                    {isActive && (
-                      <ChevronRight className="ml-auto h-4 w-4" />
-                    )}
+                    {isActive && <ChevronRight className="ml-auto h-4 w-4" />}
                   </button>
                 );
               })}
@@ -271,21 +320,27 @@ export function Navigation({ currentStage, onStageChange }: NavigationProps) {
               <SettingsDialog />
             </div>
           </div>
-          
+
           {/* Service Status */}
           <div>
             <p className="text-xs text-sidebar-foreground/60 mb-1">Services</p>
             <div className="flex gap-2">
               <div className="flex items-center gap-1" title="MongoDB">
-                <div className={`w-2 h-2 rounded-full ${STATUS_COLORS[serviceStatus.mongodb]}`} />
+                <div
+                  className={`w-2 h-2 rounded-full ${STATUS_COLORS[serviceStatus.mongodb]}`}
+                />
                 <Database className="h-3 w-3 text-sidebar-foreground/60" />
               </div>
               <div className="flex items-center gap-1" title="Cloudinary">
-                <div className={`w-2 h-2 rounded-full ${STATUS_COLORS[serviceStatus.cloudinary]}`} />
+                <div
+                  className={`w-2 h-2 rounded-full ${STATUS_COLORS[serviceStatus.cloudinary]}`}
+                />
                 <Cloud className="h-3 w-3 text-sidebar-foreground/60" />
               </div>
               <div className="flex items-center gap-1" title="AI">
-                <div className={`w-2 h-2 rounded-full ${STATUS_COLORS[serviceStatus.ai]}`} />
+                <div
+                  className={`w-2 h-2 rounded-full ${STATUS_COLORS[serviceStatus.ai]}`}
+                />
                 <Sparkles className="h-3 w-3 text-sidebar-foreground/60" />
               </div>
             </div>
@@ -294,10 +349,10 @@ export function Navigation({ currentStage, onStageChange }: NavigationProps) {
 
         {/* Pinned Items */}
         <div className="p-4 border-t border-sidebar-border">
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             className="w-full flex items-center justify-start gap-2 text-sm text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors px-2"
-            onClick={() => setShowPinnedSidebar(prev => !prev)}
+            onClick={() => setShowPinnedSidebar((prev) => !prev)}
           >
             <Bookmark className="h-4 w-4" />
             <span>Pinned Items</span>
@@ -311,119 +366,186 @@ export function Navigation({ currentStage, onStageChange }: NavigationProps) {
       </aside>
 
       {/* Pinned Items Sidebar Overlay */}
-      {showPinnedSidebar && <PinnedItemsSidebar onClose={() => setShowPinnedSidebar(false)} />}
+      {showPinnedSidebar && (
+        <PinnedItemsSidebar onClose={() => setShowPinnedSidebar(false)} />
+      )}
 
       {/* Mobile Header */}
-      <header className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-background border-b border-border">
+      <header className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border transition-all supports-[backdrop-filter]:bg-background/60">
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center gap-2">
-            <img src="/favicon.svg" alt="Logo" className="w-8 h-8" />
-            <span className="font-sans font-semibold text-foreground">Content OS</span>
+            <img
+              src="/favicon.svg"
+              alt="Logo"
+              className="w-8 h-8 drop-shadow-sm"
+            />
+            <span className="font-sans font-semibold text-foreground">
+              Content OS
+            </span>
           </div>
           <div className="flex items-center gap-2">
             {/* Service indicators */}
-            <div className="flex gap-1 mr-2">
-              <div className={`w-2 h-2 rounded-full ${STATUS_COLORS[serviceStatus.mongodb]}`} />
-              <div className={`w-2 h-2 rounded-full ${STATUS_COLORS[serviceStatus.cloudinary]}`} />
-              <div className={`w-2 h-2 rounded-full ${STATUS_COLORS[serviceStatus.ai]}`} />
+            <div className="flex gap-1.5 mr-2">
+              <div
+                className={`w-2 h-2 rounded-full shadow-sm ${STATUS_COLORS[serviceStatus.mongodb]}`}
+              />
+              <div
+                className={`w-2 h-2 rounded-full shadow-sm ${STATUS_COLORS[serviceStatus.cloudinary]}`}
+              />
+              <div
+                className={`w-2 h-2 rounded-full shadow-sm ${STATUS_COLORS[serviceStatus.ai]}`}
+              />
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            >
-              {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            </Button>
+
+            <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-9 w-9">
+                  <Menu className="h-5 w-5" />
+                  <span className="sr-only">Toggle menu</span>
+                </Button>
+              </SheetTrigger>
+              <SheetContent
+                side="left"
+                className="w-[85vw] max-w-sm p-0 flex flex-col bg-background/95 backdrop-blur-2xl border-r-border/50"
+              >
+                <SheetHeader className="p-4 border-b border-border/50 text-left">
+                  <SheetTitle className="flex items-center gap-2 font-sans font-semibold">
+                    <img src="/favicon.svg" alt="Logo" className="w-6 h-6" />
+                    Content OS
+                  </SheetTitle>
+                </SheetHeader>
+
+                <ScrollArea className="flex-1">
+                  <div className="p-4 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <Button
+                        onClick={createNewProject}
+                        className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground mr-2 font-medium shadow-sm transition-all"
+                      >
+                        <Plus className="mr-2 h-4 w-4" />
+                        New Project
+                      </Button>
+                      <ThemeToggle />
+                    </div>
+
+                    <nav className="space-y-1">
+                      {STAGES.map((stage) => {
+                        const Icon = stage.icon;
+                        const status = getStageStatus(stage.id);
+
+                        return (
+                          <button
+                            key={stage.id}
+                            onClick={() => handleStageClick(stage.id)}
+                            disabled={status === "locked" || isGenerating}
+                            className={`
+                              w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all
+                              ${
+                                status === "active"
+                                  ? "bg-primary text-primary-foreground shadow-md"
+                                  : status === "completed"
+                                    ? "text-foreground hover:bg-muted/80"
+                                    : status === "available"
+                                      ? "text-foreground/70 hover:bg-muted/80 hover:text-foreground"
+                                      : "text-foreground/40 cursor-not-allowed"
+                              }
+                            `}
+                          >
+                            <div
+                              className={`
+                              flex items-center justify-center w-7 h-7 rounded-full
+                              ${
+                                status === "active"
+                                  ? "bg-primary-foreground/20 text-primary-foreground"
+                                  : status === "completed"
+                                    ? "bg-chart-1/20 text-chart-1"
+                                    : "bg-muted text-muted-foreground"
+                              }
+                            `}
+                            >
+                              <Icon className="h-4 w-4" />
+                            </div>
+                            <span>{stage.label}</span>
+                            {status === "completed" && (
+                              <Check className="ml-auto h-4 w-4 text-chart-1" />
+                            )}
+                            {status === "locked" && (
+                              <span className="ml-auto text-xs text-muted-foreground font-normal truncate max-w-[120px]">
+                                {getLockedReason(stage.id)}
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+
+                      <div className="pt-4 mt-6 border-t border-border/50">
+                        <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-3 px-3">
+                          Tools
+                        </p>
+                        {EXTRA_SECTIONS.map((section) => {
+                          const Icon = section.icon;
+                          const isActive = currentStage === section.id;
+
+                          return (
+                            <button
+                              key={section.id}
+                              onClick={() => handleStageClick(section.id)}
+                              className={`
+                                w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all my-1
+                                ${
+                                  isActive
+                                    ? "bg-primary text-primary-foreground shadow-md"
+                                    : "text-foreground/80 hover:bg-muted/80"
+                                }
+                              `}
+                            >
+                              <div
+                                className={`
+                                flex items-center justify-center w-7 h-7 rounded-full
+                                ${
+                                  isActive
+                                    ? "bg-primary-foreground/20 text-primary-foreground"
+                                    : "bg-muted text-muted-foreground"
+                                }
+                              `}
+                              >
+                                <Icon className="h-4 w-4" />
+                              </div>
+                              <span>{section.label}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </nav>
+                  </div>
+                </ScrollArea>
+              </SheetContent>
+            </Sheet>
           </div>
         </div>
 
-        {/* Mobile Menu */}
-        {isMobileMenuOpen && (
-          <div className="border-t border-border bg-background p-4">
-            <div className="flex items-center justify-between mb-4">
-               <Button
-                onClick={createNewProject}
-                className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground mr-2"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                New Project
-              </Button>
-              <ThemeToggle />
-            </div>
-            <nav className="space-y-1">
-              {STAGES.map((stage) => {
-                const Icon = stage.icon;
-                const status = getStageStatus(stage.id);
-                
-                const mobileButton = (
-                  <button
-                    key={stage.id}
-                    onClick={() => handleStageClick(stage.id)}
-                    disabled={status === 'locked' || isGenerating}
-                    className={`
-                      w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm
-                      ${status === 'active' 
-                        ? 'bg-primary text-primary-foreground' 
-                        : status === 'completed'
-                        ? 'text-foreground hover:bg-muted'
-                        : status === 'available'
-                        ? 'text-foreground/70 hover:bg-muted'
-                        : 'text-foreground/40 cursor-not-allowed'}
-                    `}
-                  >
-                    <Icon className="h-4 w-4" />
-                    <span>{stage.label}</span>
-                    {status === 'completed' && <Check className="ml-auto h-4 w-4" />}
-                    {status === 'locked' && (
-                      <span className="ml-auto text-xs text-muted-foreground">
-                        {getLockedReason(stage.id)}
-                      </span>
-                    )}
-                  </button>
-                );
-                
-                return mobileButton;
-              })}
-              <div className="pt-2 mt-2 border-t border-border">
-                <p className="text-xs text-muted-foreground mb-1 px-3">Tools</p>
-                {EXTRA_SECTIONS.map((section) => {
-                  const Icon = section.icon;
-                  const isActive = currentStage === section.id;
-                  
-                  return (
-                    <button
-                      key={section.id}
-                      onClick={() => handleStageClick(section.id)}
-                      className={`
-                        w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm
-                        ${isActive 
-                          ? 'bg-primary text-primary-foreground' 
-                          : 'text-foreground/70 hover:bg-muted'}
-                      `}
-                    >
-                      <Icon className="h-4 w-4" />
-                      <span>{section.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </nav>
-          </div>
-        )}
-
         {/* Mobile Stage Progress */}
-        <div className="flex border-t border-border">
+        <div className="flex h-1 bg-muted/50">
           {STAGES.map((stage) => {
             const status = getStageStatus(stage.id);
             return (
               <div
                 key={stage.id}
                 className={`
-                  flex-1 h-1
-                  ${status === 'completed' ? 'bg-chart-1' : 
-                    status === 'active' ? 'bg-primary' : 'bg-muted'}
+                  flex-1 transition-all duration-300
+                  ${
+                    status === "completed"
+                      ? "bg-chart-1"
+                      : status === "active"
+                        ? "bg-primary relative"
+                        : "bg-transparent"
+                  }
                 `}
-              />
+              >
+                {status === "active" && (
+                  <div className="absolute inset-0 bg-primary animate-pulse opacity-50 shadow-[0_0_8px_var(--primary)]" />
+                )}
+              </div>
             );
           })}
         </div>

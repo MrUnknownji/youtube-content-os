@@ -1,22 +1,22 @@
-import { useState } from 'react';
-import { 
-  X, 
-  Lightbulb, 
-  FileText, 
-  Clapperboard, 
-  Tag, 
+import { useState } from "react";
+import {
+  X,
+  Lightbulb,
+  FileText,
+  Clapperboard,
+  Tag,
   Database,
   Trash2,
-  Scissors
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent } from '@/components/ui/card';
-import { useProjectStore } from '@/state/projectStore';
-import { getDatabaseGateway } from '@/services/db-adapter';
-import { toast } from 'sonner';
-import type { PinnedItem } from '@/types';
+  Scissors,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent } from "@/components/ui/card";
+import { useProjectStore } from "@/state/projectStore";
+import { getDatabaseGateway } from "@/services/db-adapter";
+import { toast } from "sonner";
+import type { PinnedItem } from "@/types";
 
 interface PinnedItemsSidebarProps {
   onClose: () => void;
@@ -25,107 +25,140 @@ interface PinnedItemsSidebarProps {
 export function PinnedItemsSidebar({ onClose }: PinnedItemsSidebarProps) {
   const { pinnedItems, removePinnedItem } = useProjectStore();
   const db = getDatabaseGateway();
-  const [activeTab, setActiveTab] = useState('all');
+  const [activeTab, setActiveTab] = useState("all");
 
   const handleUnpin = async (id: string) => {
     try {
       const result = await db.deletePinnedItem(id);
       if (result.success) {
         removePinnedItem(id);
-        toast.success('Item unpinned');
+        toast.success("Item unpinned");
       } else {
-        toast.error('Failed to unpin item');
+        toast.error("Failed to unpin item");
       }
     } catch {
-      toast.error('Error removing item');
+      toast.error("Error removing item");
     }
   };
 
-  const filteredItems = activeTab === 'all' 
-    ? pinnedItems 
-    : pinnedItems.filter(item => item.itemType === activeTab);
+  const filteredItems =
+    activeTab === "all"
+      ? pinnedItems
+      : pinnedItems.filter((item) => item.itemType === activeTab);
 
   const getIcon = (type: string) => {
     switch (type) {
-      case 'topic': return Lightbulb;
-      case 'script': return FileText;
-      case 'storyboard': return Clapperboard;
-      case 'title': return Tag;
-      case 'description': return FileText;
-      case 'thumbnail_concept': return Tag;
-      case 'shorts': return Scissors;
-      default: return Database;
+      case "topic":
+        return Lightbulb;
+      case "script":
+        return FileText;
+      case "storyboard":
+        return Clapperboard;
+      case "title":
+        return Tag;
+      case "description":
+        return FileText;
+      case "thumbnail_concept":
+        return Tag;
+      case "shorts":
+        return Scissors;
+      default:
+        return Database;
     }
   };
 
   const renderContent = (item: PinnedItem) => {
     const data = item.content as unknown as Record<string, unknown>;
-    
+
     switch (item.itemType) {
-      case 'topic':
+      case "topic":
         return (
           <>
             <h4 className="font-medium text-sm mb-1">{String(data.title)}</h4>
             <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-xs">{String(data.predictedScore)} Score</Badge>
+              <Badge variant="outline" className="text-xs">
+                {String(data.predictedScore)} Score
+              </Badge>
             </div>
           </>
         );
-      case 'script':
+      case "script":
         return (
           <>
             <div className="flex items-center gap-2 mb-2">
-              <Badge variant="secondary" className="text-xs uppercase">{String(data.format)}</Badge>
-              <span className="text-xs text-muted-foreground">{String(data.estimatedDuration)}</span>
+              <Badge variant="secondary" className="text-xs uppercase">
+                {String(data.format)}
+              </Badge>
+              <span className="text-xs text-muted-foreground">
+                {String(data.estimatedDuration)}
+              </span>
             </div>
             <p className="text-xs text-muted-foreground line-clamp-3 font-mono bg-muted/50 p-2 rounded">
               {String(data.content)?.substring(0, 100)}...
             </p>
           </>
         );
-      case 'storyboard':
+      case "storyboard":
         return (
           <>
             <div className="flex items-center gap-2 mb-2">
-               <Badge variant="outline" className="text-xs">{Array.isArray(data) ? data.length : 0} Scenes</Badge>
+              <Badge variant="outline" className="text-xs">
+                {Array.isArray(data) ? data.length : 0} Scenes
+              </Badge>
             </div>
             {Array.isArray(data) && data[0] && (
-               <p className="text-xs text-muted-foreground line-clamp-2">
-                 Scene 1: {String(data[0].visualDescription)}
-               </p>
+              <p className="text-xs text-muted-foreground line-clamp-2">
+                Scene 1: {String(data[0].visualDescription)}
+              </p>
             )}
           </>
         );
-      case 'title':
+      case "title":
         return <h4 className="font-medium text-sm">{String(data)}</h4>;
-      case 'description':
-        return <p className="text-xs text-muted-foreground line-clamp-4">{String(data)}</p>;
-      case 'thumbnail_concept':
+      case "description":
+        return (
+          <p className="text-xs text-muted-foreground line-clamp-4">
+            {String(data)}
+          </p>
+        );
+      case "thumbnail_concept":
         return (
           <>
             <h4 className="font-medium text-sm mb-1">{String(data.title)}</h4>
-            <p className="text-xs text-muted-foreground">{String(data.description)}</p>
+            <p className="text-xs text-muted-foreground">
+              {String(data.description)}
+            </p>
           </>
         );
-      case 'shorts':
+      case "shorts":
         return (
           <>
             <h4 className="font-medium text-sm mb-1">{String(data.title)}</h4>
             <div className="flex items-center gap-2 mb-2">
-              <Badge variant="outline" className="text-xs">{String(data.duration)}s</Badge>
-              <Badge variant="secondary" className="text-xs uppercase">{String(data.contentType)}</Badge>
+              <Badge variant="outline" className="text-xs">
+                {String(data.duration)}s
+              </Badge>
+              <Badge variant="secondary" className="text-xs uppercase">
+                {String(data.contentType)}
+              </Badge>
             </div>
-            <p className="text-xs text-muted-foreground line-clamp-2">{String(data.hookText)}</p>
+            <p className="text-xs text-muted-foreground line-clamp-2">
+              {String(data.hookText)}
+            </p>
           </>
         );
       default:
-        return <pre className="text-xs overflow-hidden">{JSON.stringify(data, null, 2).slice(0, 100)}...</pre>;
+        return (
+          <pre className="text-xs overflow-hidden">
+            {JSON.stringify(data, null, 2).slice(0, 100)}...
+          </pre>
+        );
     }
   };
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
-      <div 
+      <div
         className="fixed inset-0 bg-background/80 backdrop-blur-sm"
         onClick={onClose}
       />
@@ -142,7 +175,11 @@ export function PinnedItemsSidebar({ onClose }: PinnedItemsSidebarProps) {
         </div>
 
         <div className="px-4 pt-4 flex-shrink-0">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className="w-full"
+          >
             <TabsList className="w-full grid grid-cols-4">
               <TabsTrigger value="all">All</TabsTrigger>
               <TabsTrigger value="topic">Topics</TabsTrigger>
@@ -164,7 +201,10 @@ export function PinnedItemsSidebar({ onClose }: PinnedItemsSidebarProps) {
                 {filteredItems.map((item) => {
                   const Icon = getIcon(item.itemType);
                   return (
-                    <Card key={item.id} className="bg-card border-border hover:border-primary/50 transition-colors">
+                    <Card
+                      key={item.id}
+                      className="bg-card/60 backdrop-blur-md border-border/50 rounded-2xl shadow-sm hover:shadow-md hover:border-primary/50 transition-all duration-300"
+                    >
                       <CardContent className="p-3">
                         <div className="flex items-start gap-3">
                           <div className="p-2 bg-muted rounded-md mt-0.5 flex-shrink-0">
@@ -173,11 +213,11 @@ export function PinnedItemsSidebar({ onClose }: PinnedItemsSidebarProps) {
                           <div className="flex-1 min-w-0 overflow-hidden">
                             <div className="flex items-center justify-between mb-1">
                               <span className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
-                                {item.itemType.replace('_', ' ')}
+                                {item.itemType.replace("_", " ")}
                               </span>
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
+                              <Button
+                                variant="ghost"
+                                size="icon"
                                 className="h-6 w-6 text-destructive/70 hover:text-destructive flex-shrink-0"
                                 onClick={() => handleUnpin(item.id)}
                               >

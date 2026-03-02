@@ -336,8 +336,8 @@ export function DirectImageGenerator() {
           </div>
 
           {/* Options */}
-          <div className="flex items-center gap-4">
-            <div className="space-y-2 flex-1 max-w-[200px]">
+          <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4 w-full">
+            <div className="space-y-2 w-full sm:max-w-[200px]">
               <Label className="flex items-center gap-2">
                 <ImageIcon className="h-4 w-4 text-muted-foreground" />
                 Size
@@ -360,7 +360,7 @@ export function DirectImageGenerator() {
               </Select>
             </div>
 
-            <div className="flex-1" />
+            <div className="hidden sm:block flex-1" />
 
             <Button
               onClick={handleGenerate}
@@ -370,7 +370,7 @@ export function DirectImageGenerator() {
                 !isImageGenEnabled ||
                 !prompt.trim()
               }
-              className="bg-primary hover:bg-primary/90 text-primary-foreground min-w-[140px]"
+              className="w-full sm:w-auto bg-primary text-primary-foreground shadow-md transition-all hover:shadow-lg hover:bg-primary/90 min-w-[140px]"
             >
               {isAnyGenerating ? (
                 <>

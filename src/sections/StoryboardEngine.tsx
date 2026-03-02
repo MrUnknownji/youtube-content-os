@@ -1,16 +1,20 @@
 // Module 4: Visual Storyboard Engine - Scene-by-scene planning
-import { useState, useEffect, useRef } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { 
-  Bookmark, 
-  Check, 
-  RefreshCw, 
-  ChevronDown, 
+import { useState, useEffect, useRef } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
+  Bookmark,
+  Check,
+  RefreshCw,
+  ChevronDown,
   ChevronUp,
   Clock,
   Camera,
@@ -26,90 +30,106 @@ import {
   HelpCircle,
   Clapperboard,
   Sparkles,
-  Download
-} from 'lucide-react';
-import { toast } from 'sonner';
-import { useProjectStore } from '@/state/projectStore';
-import { useTextGeneration } from '@/hooks/useAIGeneration';
-import { useImageGenerationQueue } from '@/hooks/useImageGenerationQueue';
-import { getAIGateway } from '@/services/ai-provider';
-import { getDatabaseGateway } from '@/services/db-adapter';
-import { ImageViewer } from '@/components/ImageViewer';
-import { getAISettings } from '@/components/SettingsDialog';
-import { Skeleton } from '@/components/ui/skeleton';
-import type { StoryboardScene, PinnedItem } from '@/types';
+  Download,
+} from "lucide-react";
+import { toast } from "sonner";
+import { useProjectStore } from "@/state/projectStore";
+import { useTextGeneration } from "@/hooks/useAIGeneration";
+import { useImageGenerationQueue } from "@/hooks/useImageGenerationQueue";
+import { getAIGateway } from "@/services/ai-provider";
+import { getDatabaseGateway } from "@/services/db-adapter";
+import { ImageViewer } from "@/components/ImageViewer";
+import { getAISettings } from "@/components/SettingsDialog";
+import { Skeleton } from "@/components/ui/skeleton";
+import type { StoryboardScene, PinnedItem } from "@/types";
 
 const MOCK_SCENES: StoryboardScene[] = [
   {
     sceneNumber: 1,
-    timestampStart: '0:00',
-    timestampEnd: '0:15',
+    timestampStart: "0:00",
+    timestampEnd: "0:15",
     duration: 15,
-    type: 'A-roll',
-    scriptSegment: 'Hey everyone, welcome back! Today I\'m going to share something that completely changed how I think about productivity.',
-    visualDescription: 'Host speaking directly to camera with energetic expression, bright studio lighting',
-    imagePrompt: 'YouTube creator in modern home studio, professional ring light, confident welcoming expression, clean background with subtle plants, 4K quality',
-    audioNote: 'Upbeat intro music fading out'
+    type: "A-roll",
+    scriptSegment:
+      "Hey everyone, welcome back! Today I'm going to share something that completely changed how I think about productivity.",
+    visualDescription:
+      "Host speaking directly to camera with energetic expression, bright studio lighting",
+    imagePrompt:
+      "YouTube creator in modern home studio, professional ring light, confident welcoming expression, clean background with subtle plants, 4K quality",
+    audioNote: "Upbeat intro music fading out",
   },
   {
     sceneNumber: 2,
-    timestampStart: '0:15',
-    timestampEnd: '0:45',
+    timestampStart: "0:15",
+    timestampEnd: "0:45",
     duration: 30,
-    type: 'B-roll',
-    scriptSegment: 'Most people approach productivity completely wrong. They try to multitask...',
-    visualDescription: 'Montage of distracted workers, multiple browser tabs, phone notifications popping up',
-    imagePrompt: 'Split screen comparison: left side shows chaotic workspace with multiple screens, notifications, coffee cups; right side shows clean minimalist desk with single laptop',
-    audioNote: 'Subtle tension music building'
+    type: "B-roll",
+    scriptSegment:
+      "Most people approach productivity completely wrong. They try to multitask...",
+    visualDescription:
+      "Montage of distracted workers, multiple browser tabs, phone notifications popping up",
+    imagePrompt:
+      "Split screen comparison: left side shows chaotic workspace with multiple screens, notifications, coffee cups; right side shows clean minimalist desk with single laptop",
+    audioNote: "Subtle tension music building",
   },
   {
     sceneNumber: 3,
-    timestampStart: '0:45',
-    timestampEnd: '2:00',
+    timestampStart: "0:45",
+    timestampEnd: "2:00",
     duration: 75,
-    type: 'ScreenCap',
-    scriptSegment: 'The key insight is single-tasking beats multitasking every time.',
-    visualDescription: 'Calendar app showing time blocks, focus mode activated, timer running',
-    imagePrompt: 'Clean Google Calendar interface with color-coded 90-minute time blocks, focus mode overlay, minimalist design, professional screenshot',
-    recordingInstructions: 'Open Google Calendar, zoom to 150%, navigate to week view, demonstrate creating time block',
-    audioNote: 'Calm explanatory tone'
+    type: "ScreenCap",
+    scriptSegment:
+      "The key insight is single-tasking beats multitasking every time.",
+    visualDescription:
+      "Calendar app showing time blocks, focus mode activated, timer running",
+    imagePrompt:
+      "Clean Google Calendar interface with color-coded 90-minute time blocks, focus mode overlay, minimalist design, professional screenshot",
+    recordingInstructions:
+      "Open Google Calendar, zoom to 150%, navigate to week view, demonstrate creating time block",
+    audioNote: "Calm explanatory tone",
   },
   {
     sceneNumber: 4,
-    timestampStart: '2:00',
-    timestampEnd: '3:00',
+    timestampStart: "2:00",
+    timestampEnd: "3:00",
     duration: 60,
-    type: 'Graphic',
-    scriptSegment: 'I tested this approach for 30 days, and the results were incredible.',
-    visualDescription: 'Animated infographic showing before/after productivity metrics, charts trending upward',
-    imagePrompt: 'Modern infographic design with before/after comparison, productivity metrics visualization, upward trending charts, clean data visualization style, green and blue color scheme',
-    audioNote: 'Upbeat achievement music'
+    type: "Graphic",
+    scriptSegment:
+      "I tested this approach for 30 days, and the results were incredible.",
+    visualDescription:
+      "Animated infographic showing before/after productivity metrics, charts trending upward",
+    imagePrompt:
+      "Modern infographic design with before/after comparison, productivity metrics visualization, upward trending charts, clean data visualization style, green and blue color scheme",
+    audioNote: "Upbeat achievement music",
   },
   {
     sceneNumber: 5,
-    timestampStart: '3:00',
-    timestampEnd: '3:30',
+    timestampStart: "3:00",
+    timestampEnd: "3:30",
     duration: 30,
-    type: 'A-roll',
-    scriptSegment: 'If you want to try this yourself, hit that like button and subscribe!',
-    visualDescription: 'Host with enthusiastic expression, pointing to subscribe button area',
-    imagePrompt: 'YouTube creator pointing enthusiastically, bright smile, gesture toward camera, engaging call-to-action pose, professional lighting',
-    audioNote: 'Outro music building'
-  }
+    type: "A-roll",
+    scriptSegment:
+      "If you want to try this yourself, hit that like button and subscribe!",
+    visualDescription:
+      "Host with enthusiastic expression, pointing to subscribe button area",
+    imagePrompt:
+      "YouTube creator pointing enthusiastically, bright smile, gesture toward camera, engaging call-to-action pose, professional lighting",
+    audioNote: "Outro music building",
+  },
 ];
 
 const TYPE_ICONS = {
-  'A-roll': Mic,
-  'B-roll': Camera,
-  'ScreenCap': Monitor,
-  'Graphic': ImageIcon
+  "A-roll": Mic,
+  "B-roll": Camera,
+  ScreenCap: Monitor,
+  Graphic: ImageIcon,
 };
 
 const TYPE_COLORS = {
-  'A-roll': 'bg-primary text-primary-foreground',
-  'B-roll': 'bg-chart-2 text-primary-foreground',
-  'ScreenCap': 'bg-chart-3 text-primary-foreground',
-  'Graphic': 'bg-accent text-accent-foreground'
+  "A-roll": "bg-primary text-primary-foreground",
+  "B-roll": "bg-chart-2 text-primary-foreground",
+  ScreenCap: "bg-chart-3 text-primary-foreground",
+  Graphic: "bg-accent text-accent-foreground",
 };
 
 const isValidType = (type: string): type is keyof typeof TYPE_ICONS => {
@@ -117,16 +137,21 @@ const isValidType = (type: string): type is keyof typeof TYPE_ICONS => {
 };
 
 export function StoryboardEngine() {
-  const { currentProject, updateProject, finalizeStoryboard, currentStage } = useProjectStore();
+  const { currentProject, updateProject, finalizeStoryboard, currentStage } =
+    useProjectStore();
   const { generate: generateText } = useTextGeneration();
-  const { generateImage, isGenerating: isImageGenerating } = useImageGenerationQueue();
-  
+  const { generateImage, isGenerating: isImageGenerating } =
+    useImageGenerationQueue();
+
   const [scenes, setScenes] = useState<StoryboardScene[]>(() => {
-    if (currentProject?.selectedStoryboard?.scenes?.length) return currentProject.selectedStoryboard.scenes;
+    if (currentProject?.selectedStoryboard?.scenes?.length)
+      return currentProject.selectedStoryboard.scenes;
     return getAIGateway().isAvailable() ? [] : MOCK_SCENES;
   });
-  
-  const [expandedScenes, setExpandedScenes] = useState<Set<number>>(new Set([1]));
+
+  const [expandedScenes, setExpandedScenes] = useState<Set<number>>(
+    new Set([1]),
+  );
   const [localIsGenerating, setLocalIsGenerating] = useState(false);
   const [generateImages, setGenerateImages] = useState(false);
   const [copiedPrompt, setCopiedPrompt] = useState<number | null>(null);
@@ -136,7 +161,7 @@ export function StoryboardEngine() {
   const db = getDatabaseGateway();
 
   const toggleScene = (sceneNum: number) => {
-    setExpandedScenes(prev => {
+    setExpandedScenes((prev) => {
       const next = new Set(prev);
       if (next.has(sceneNum)) {
         next.delete(sceneNum);
@@ -148,7 +173,7 @@ export function StoryboardEngine() {
   };
 
   const expandAllScenes = () => {
-    setExpandedScenes(new Set(scenes.map(s => s.sceneNumber)));
+    setExpandedScenes(new Set(scenes.map((s) => s.sceneNumber)));
   };
 
   const collapseAllScenes = () => {
@@ -160,26 +185,31 @@ export function StoryboardEngine() {
   // Auto-generate if empty and AI mode and arrived at this stage
   useEffect(() => {
     if (
-      currentStage === 'storyboard' && 
-      scenes.length === 0 && 
-      ai.isAvailable() && 
-      currentProject?.selectedScript && 
+      currentStage === "storyboard" &&
+      scenes.length === 0 &&
+      ai.isAvailable() &&
+      currentProject?.selectedScript &&
       !localIsGenerating &&
       !generationStarted.current
     ) {
       generationStarted.current = true;
       handleGenerateStoryboard();
     }
-  }, [currentStage, scenes.length, currentProject?.selectedScript, localIsGenerating]);
+  }, [
+    currentStage,
+    scenes.length,
+    currentProject?.selectedScript,
+    localIsGenerating,
+  ]);
 
   const handleGenerateStoryboard = async () => {
     if (localIsGenerating) return;
     setLocalIsGenerating(true);
-    
+
     try {
-      const script = currentProject?.selectedScript?.content || '';
-      const format = currentProject?.selectedScript?.format || 'facecam';
-      
+      const script = currentProject?.selectedScript?.content || "";
+      const format = currentProject?.selectedScript?.format || "facecam";
+
       const prompt = `You are a professional video director and storyboard artist. Create a detailed visual storyboard for this YouTube script.
 
 SCRIPT:
@@ -221,64 +251,95 @@ IMPORTANT:
 
 Return as valid JSON array. Total duration should match script length (approximately 3-4 minutes for a typical video).`;
 
-      const response = await generateText({ prompt, type: 'text', format: 'json' });
-      
+      const response = await generateText({
+        prompt,
+        type: "text",
+        format: "json",
+      });
+
       if (response.success) {
         try {
           const jsonMatch = response.data.match(/\[[\s\S]*\]/);
-          const parsedScenes = jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(response.data);
-          
+          const parsedScenes = jsonMatch
+            ? JSON.parse(jsonMatch[0])
+            : JSON.parse(response.data);
+
           if (Array.isArray(parsedScenes) && parsedScenes.length > 0) {
-            let lastEndTime = '0:00';
-            
+            let lastEndTime = "0:00";
+
             const validatedScenes = parsedScenes.map((s, i) => {
-              const duration = typeof s.duration === 'number' ? s.duration : parseInt(s.duration) || 20;
-              
+              const duration =
+                typeof s.duration === "number"
+                  ? s.duration
+                  : parseInt(s.duration) || 20;
+
               const calcEnd = (start: string, dur: number) => {
-                const parts = start.split(':');
-                if (parts.length < 2) return '0:00';
-                const totalSecs = parseInt(parts[0]) * 60 + parseInt(parts[1]) + dur;
+                const parts = start.split(":");
+                if (parts.length < 2) return "0:00";
+                const totalSecs =
+                  parseInt(parts[0]) * 60 + parseInt(parts[1]) + dur;
                 const m = Math.floor(totalSecs / 60);
                 const s_ = totalSecs % 60;
-                return `${m}:${s_.toString().padStart(2, '0')}`;
+                return `${m}:${s_.toString().padStart(2, "0")}`;
               };
 
-              const start = (s.timestampStart && s.timestampStart !== '0:00') ? s.timestampStart : (i === 0 ? '0:00' : lastEndTime);
-              const end = (s.timestampEnd && s.timestampEnd !== '0:00' && s.timestampEnd !== start) ? s.timestampEnd : calcEnd(start, duration);
-              
+              const start =
+                s.timestampStart && s.timestampStart !== "0:00"
+                  ? s.timestampStart
+                  : i === 0
+                    ? "0:00"
+                    : lastEndTime;
+              const end =
+                s.timestampEnd &&
+                s.timestampEnd !== "0:00" &&
+                s.timestampEnd !== start
+                  ? s.timestampEnd
+                  : calcEnd(start, duration);
+
               lastEndTime = end;
 
               return {
-                sceneNumber: typeof s.sceneNumber === 'number' ? s.sceneNumber : i + 1,
+                sceneNumber:
+                  typeof s.sceneNumber === "number" ? s.sceneNumber : i + 1,
                 timestampStart: start,
                 timestampEnd: end,
                 duration,
-                type: isValidType(s.type) ? s.type : 'A-roll',
-                scriptSegment: String(s.scriptSegment || ''),
-                visualDescription: String(s.visualDescription || s.scriptSegment || 'Focus on host speaking'),
-                imagePrompt: String(s.imagePrompt || s.visualDescription || `A professional YouTube scene about ${currentProject?.selectedTopic?.title}`),
-                recordingInstructions: s.recordingInstructions ? String(s.recordingInstructions) : undefined,
-                audioNote: s.audioNote ? String(s.audioNote) : undefined
+                type: isValidType(s.type) ? s.type : "A-roll",
+                scriptSegment: String(s.scriptSegment || ""),
+                visualDescription: String(
+                  s.visualDescription ||
+                    s.scriptSegment ||
+                    "Focus on host speaking",
+                ),
+                imagePrompt: String(
+                  s.imagePrompt ||
+                    s.visualDescription ||
+                    `A professional YouTube scene about ${currentProject?.selectedTopic?.title}`,
+                ),
+                recordingInstructions: s.recordingInstructions
+                  ? String(s.recordingInstructions)
+                  : undefined,
+                audioNote: s.audioNote ? String(s.audioNote) : undefined,
               };
             });
-            
+
             setScenes(validatedScenes);
             setExpandedScenes(new Set([1]));
-            updateProject({ 
-              selectedStoryboard: { 
-                scenes: validatedScenes, 
-                format: currentProject?.selectedScript?.format || 'facecam' 
-              } 
+            updateProject({
+              selectedStoryboard: {
+                scenes: validatedScenes,
+                format: currentProject?.selectedScript?.format || "facecam",
+              },
             });
-            toast.success('Storyboard generated successfully');
+            toast.success("Storyboard generated successfully");
           }
         } catch (e) {
-          console.error('Parse failed', e);
+          console.error("Parse failed", e);
           setScenes(MOCK_SCENES);
         }
       }
     } catch (error) {
-      toast.error('Generation failed');
+      toast.error("Generation failed");
     } finally {
       setLocalIsGenerating(false);
     }
@@ -287,30 +348,40 @@ Return as valid JSON array. Total duration should match script length (approxima
   const generateSceneImage = async (scene: StoryboardScene) => {
     if (!generateImages) return;
     if (isImageGenerating(`scene-${scene.sceneNumber}`)) return;
-    
-    const response = await generateImage(scene.imagePrompt, `scene-${scene.sceneNumber}`);
-    
+
+    const response = await generateImage(
+      scene.imagePrompt,
+      `scene-${scene.sceneNumber}`,
+    );
+
     if (response?.success) {
-      setScenes(prev => prev.map(s => 
-        s.sceneNumber === scene.sceneNumber 
-          ? { ...s, generatedImageUrl: response.data }
-          : s
-      ));
+      setScenes((prev) =>
+        prev.map((s) =>
+          s.sceneNumber === scene.sceneNumber
+            ? { ...s, generatedImageUrl: response.data }
+            : s,
+        ),
+      );
     }
   };
 
   const regenerateSceneImage = async (scene: StoryboardScene) => {
     if (!generateImages) return;
     if (isImageGenerating(`scene-${scene.sceneNumber}`)) return;
-    
-    const response = await generateImage(scene.imagePrompt, `scene-${scene.sceneNumber}`);
-    
+
+    const response = await generateImage(
+      scene.imagePrompt,
+      `scene-${scene.sceneNumber}`,
+    );
+
     if (response?.success) {
-      setScenes(prev => prev.map(s => 
-        s.sceneNumber === scene.sceneNumber 
-          ? { ...s, generatedImageUrl: response.data }
-          : s
-      ));
+      setScenes((prev) =>
+        prev.map((s) =>
+          s.sceneNumber === scene.sceneNumber
+            ? { ...s, generatedImageUrl: response.data }
+            : s,
+        ),
+      );
     }
   };
 
@@ -318,43 +389,52 @@ Return as valid JSON array. Total duration should match script length (approxima
     navigator.clipboard.writeText(scene.imagePrompt);
     setCopiedPrompt(scene.sceneNumber);
     setTimeout(() => setCopiedPrompt(null), 2000);
-    toast.success('Prompt copied to clipboard');
+    toast.success("Prompt copied to clipboard");
   };
 
   const pinScene = async (scene: StoryboardScene) => {
     if (!currentProject) {
-      toast.error('No active project');
+      toast.error("No active project");
       return;
     }
 
-    const pinItem: Omit<PinnedItem, 'id' | 'pinnedAt'> = {
-      userId: 'personal_user',
-      itemType: 'storyboard',
+    const pinItem: Omit<PinnedItem, "id" | "pinnedAt"> = {
+      userId: "personal_user",
+      itemType: "storyboard",
       content: [scene],
-      sourceProjectId: currentProject.id
+      sourceProjectId: currentProject.id,
     };
 
     const result = await db.addPinnedItem(pinItem);
     if (result.success) {
       useProjectStore.getState().addPinnedItem(result.data!);
-      toast.success('Scene pinned to library');
+      toast.success("Scene pinned to library");
     }
   };
 
-  const uploadToCloudinary = async (imageData: string, sceneNumber: number): Promise<string | null> => {
+  const uploadToCloudinary = async (
+    imageData: string,
+    sceneNumber: number,
+  ): Promise<string | null> => {
     const settings = getAISettings();
-    if (!settings.useCloudinary || !settings.cloudinaryCloudName || !settings.cloudinaryApiKey) {
+    if (
+      !settings.useCloudinary ||
+      !settings.cloudinaryCloudName ||
+      !settings.cloudinaryApiKey
+    ) {
       return null;
     }
 
     try {
       const isProd = import.meta.env.PROD;
-      const apiUrl = import.meta.env.VITE_API_URL || (isProd ? '/api' : 'http://localhost:3001/api');
+      const apiUrl =
+        import.meta.env.VITE_API_URL ||
+        (isProd ? "/api" : "http://localhost:3001/api");
 
       const response = await fetch(`${apiUrl}/upload`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           image: imageData,
@@ -363,9 +443,9 @@ Return as valid JSON array. Total duration should match script length (approxima
           cloudinaryConfig: {
             cloudName: settings.cloudinaryCloudName,
             apiKey: settings.cloudinaryApiKey,
-            apiSecret: settings.cloudinaryApiSecret
-          }
-        })
+            apiSecret: settings.cloudinaryApiSecret,
+          },
+        }),
       });
 
       if (response.ok) {
@@ -375,47 +455,57 @@ Return as valid JSON array. Total duration should match script length (approxima
         }
       }
     } catch (error) {
-      console.error(`Failed to upload scene ${sceneNumber} to Cloudinary:`, error);
+      console.error(
+        `Failed to upload scene ${sceneNumber} to Cloudinary:`,
+        error,
+      );
     }
     return null;
   };
 
   const handleFinalizeStoryboard = async () => {
     setIsFinalizing(true);
-    
+
     try {
       const settings = getAISettings();
       let finalScenes = [...scenes];
 
       if (settings.useCloudinary && settings.useImageGen) {
-        const scenesWithImages = scenes.filter(s => s.generatedImageUrl?.startsWith('data:'));
-        
+        const scenesWithImages = scenes.filter((s) =>
+          s.generatedImageUrl?.startsWith("data:"),
+        );
+
         if (scenesWithImages.length > 0) {
-          toast.info(`Uploading ${scenesWithImages.length} images to Cloudinary...`);
-          
+          toast.info(
+            `Uploading ${scenesWithImages.length} images to Cloudinary...`,
+          );
+
           const uploadedScenes = await Promise.all(
             scenes.map(async (scene) => {
-              if (scene.generatedImageUrl?.startsWith('data:')) {
-                const cloudinaryUrl = await uploadToCloudinary(scene.generatedImageUrl, scene.sceneNumber);
+              if (scene.generatedImageUrl?.startsWith("data:")) {
+                const cloudinaryUrl = await uploadToCloudinary(
+                  scene.generatedImageUrl,
+                  scene.sceneNumber,
+                );
                 if (cloudinaryUrl) {
                   return { ...scene, generatedImageUrl: cloudinaryUrl };
                 }
               }
               return scene;
-            })
+            }),
           );
-          
+
           finalScenes = uploadedScenes;
           setScenes(finalScenes);
-          toast.success('Images uploaded to Cloudinary');
+          toast.success("Images uploaded to Cloudinary");
         }
       }
 
       finalizeStoryboard(finalScenes);
-      toast.success('Storyboard finalized');
+      toast.success("Storyboard finalized");
     } catch (error) {
-      console.error('Failed to finalize storyboard:', error);
-      toast.error('Failed to finalize storyboard');
+      console.error("Failed to finalize storyboard:", error);
+      toast.error("Failed to finalize storyboard");
     } finally {
       setIsFinalizing(false);
     }
@@ -425,45 +515,49 @@ Return as valid JSON array. Total duration should match script length (approxima
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
   const exportScenes = () => {
     if (!currentProject || scenes.length === 0) {
-      toast.error('No scenes to export');
+      toast.error("No scenes to export");
       return;
     }
 
     const exportData = {
       id: currentProject.id,
       selectedStoryboard: {
-        scenes: scenes.map(s => ({
+        scenes: scenes.map((s) => ({
           sceneNumber: s.sceneNumber,
           timestampStart: s.timestampStart,
           timestampEnd: s.timestampEnd,
           duration: s.duration,
           type: s.type,
           scriptSegment: s.scriptSegment,
-          visualDescription: s.visualDescription
-        }))
-      }
+          visualDescription: s.visualDescription,
+        })),
+      },
     };
 
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+      type: "application/json",
+    });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
     a.download = `scenes-${currentProject.id}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success('Scenes exported successfully');
+    toast.success("Scenes exported successfully");
   };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-semibold font-sans text-foreground">Visual Storyboard</h2>
+          <h2 className="text-2xl font-semibold font-sans text-foreground">
+            Visual Storyboard
+          </h2>
           <p className="text-muted-foreground mt-1">
             Plan every scene of your video
           </p>
@@ -476,7 +570,10 @@ Return as valid JSON array. Total duration should match script length (approxima
               id="generate-images"
               className="data-[state=checked]:bg-primary"
             />
-            <Label htmlFor="generate-images" className="text-sm text-muted-foreground">
+            <Label
+              htmlFor="generate-images"
+              className="text-sm text-muted-foreground"
+            >
               Generate Images
             </Label>
           </div>
@@ -506,7 +603,9 @@ Return as valid JSON array. Total duration should match script length (approxima
             variant="outline"
             className="border-border"
           >
-            <RefreshCw className={`mr-2 h-4 w-4 ${localIsGenerating ? 'animate-spin' : ''}`} />
+            <RefreshCw
+              className={`mr-2 h-4 w-4 ${localIsGenerating ? "animate-spin" : ""}`}
+            />
             Regenerate
           </Button>
           <Button
@@ -532,7 +631,7 @@ Return as valid JSON array. Total duration should match script length (approxima
         </Badge>
         <div className="flex gap-2">
           {Object.entries(TYPE_ICONS).map(([type, Icon]) => {
-            const count = scenes.filter(s => s.type === type).length;
+            const count = scenes.filter((s) => s.type === type).length;
             if (count === 0) return null;
             return (
               <Badge key={type} variant="secondary" className="gap-1 text-xs">
@@ -548,7 +647,10 @@ Return as valid JSON array. Total duration should match script length (approxima
       {localIsGenerating && scenes.length === 0 ? (
         <div className="space-y-3">
           {Array.from({ length: 4 }).map((_, i) => (
-            <Card key={i} className="bg-card border-border rounded-lg shadow-sm">
+            <Card
+              key={i}
+              className="bg-card/60 backdrop-blur-md border-border/50 rounded-2xl shadow-sm"
+            >
               <CardContent className="p-4">
                 <div className="flex items-center gap-4">
                   <Skeleton className="w-10 h-10 rounded-full flex-shrink-0" />
@@ -564,7 +666,7 @@ Return as valid JSON array. Total duration should match script length (approxima
           ))}
         </div>
       ) : scenes.length === 0 ? (
-        <Card className="bg-card border-border border-dashed rounded-lg">
+        <Card className="bg-card/40 backdrop-blur-sm border-border/50 border-dashed rounded-2xl">
           <CardContent className="py-16 flex flex-col items-center justify-center text-center">
             <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
               <Clapperboard className="h-8 w-8 text-muted-foreground" />
@@ -573,10 +675,13 @@ Return as valid JSON array. Total duration should match script length (approxima
               No storyboard scenes yet
             </h3>
             <p className="text-muted-foreground max-w-md mb-6">
-              Finalize a script first, then generate a visual storyboard with scene-by-scene planning.
+              Finalize a script first, then generate a visual storyboard with
+              scene-by-scene planning.
             </p>
             <div className="flex items-center gap-4 mb-4">
-              <Label className="text-sm text-muted-foreground">Enable Image Generation</Label>
+              <Label className="text-sm text-muted-foreground">
+                Enable Image Generation
+              </Label>
               <Switch
                 checked={generateImages}
                 onCheckedChange={setGenerateImages}
@@ -603,46 +708,55 @@ Return as valid JSON array. Total duration should match script length (approxima
         <>
           <div className="space-y-3">
             {scenes.map((scene) => {
-              const Icon = TYPE_ICONS[scene.type as keyof typeof TYPE_ICONS] || HelpCircle;
+              const Icon =
+                TYPE_ICONS[scene.type as keyof typeof TYPE_ICONS] || HelpCircle;
               const isExpanded = expandedScenes.has(scene.sceneNumber);
-              const isGeneratingImage = isImageGenerating(`scene-${scene.sceneNumber}`);
-              
+              const isGeneratingImage = isImageGenerating(
+                `scene-${scene.sceneNumber}`,
+              );
+
               return (
                 <Collapsible
                   key={scene.sceneNumber}
                   open={isExpanded}
                   onOpenChange={() => toggleScene(scene.sceneNumber)}
                 >
-                  <Card className={`
-                    bg-card border-border rounded-lg shadow-sm transition-all duration-200
-                    ${isExpanded ? 'ring-1 ring-primary' : 'hover:shadow-md'}
-                  `}>
+                  <Card
+                    className={`
+                    bg-card/60 backdrop-blur-md border-border/50 rounded-2xl shadow-sm transition-all duration-300
+                    ${isExpanded ? "ring-2 ring-primary/50 bg-primary/5 shadow-md" : "hover:shadow-md hover:border-primary/20"}
+                  `}
+                  >
                     {/* Header - Always visible */}
                     <CollapsibleTrigger asChild>
                       <CardContent className="p-4 cursor-pointer">
                         <div className="flex items-center gap-4">
                           {/* Scene Number */}
                           <div className="flex-shrink-0 w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-                            <span className="text-sm font-mono font-medium">{scene.sceneNumber}</span>
+                            <span className="text-sm font-mono font-medium">
+                              {scene.sceneNumber}
+                            </span>
                           </div>
-                          
+
                           {/* Type Badge */}
-                          <Badge className={`${TYPE_COLORS[scene.type]} gap-1 flex-shrink-0`}>
+                          <Badge
+                            className={`${TYPE_COLORS[scene.type]} gap-1 flex-shrink-0`}
+                          >
                             <Icon className="h-3 w-3" />
                             {scene.type}
                           </Badge>
-                          
+
                           {/* Timestamp */}
                           <div className="flex items-center gap-1 text-sm text-muted-foreground flex-shrink-0">
                             <Clock className="h-3 w-3" />
                             {scene.timestampStart} - {scene.timestampEnd}
                           </div>
-                          
+
                           {/* Script Preview */}
                           <p className="flex-1 text-sm text-foreground truncate">
                             {scene.scriptSegment}
                           </p>
-                          
+
                           {/* Expand Icon */}
                           {isExpanded ? (
                             <ChevronUp className="h-4 w-4 text-muted-foreground" />
@@ -688,7 +802,9 @@ Return as valid JSON array. Total duration should match script length (approxima
                                   <Music className="h-4 w-4 text-muted-foreground" />
                                   Audio Note
                                 </h4>
-                                <p className="text-sm text-muted-foreground">{scene.audioNote}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  {scene.audioNote}
+                                </p>
                               </div>
                             )}
                           </div>
@@ -736,14 +852,18 @@ Return as valid JSON array. Total duration should match script length (approxima
                                       ) : (
                                         <Wand2 className="mr-2 h-3 w-3" />
                                       )}
-                                      {isGeneratingImage ? 'Generating...' : 'Generate Preview'}
+                                      {isGeneratingImage
+                                        ? "Generating..."
+                                        : "Generate Preview"}
                                     </Button>
                                   ) : (
                                     <Button
                                       size="sm"
                                       variant="outline"
                                       className="w-full"
-                                      onClick={() => regenerateSceneImage(scene)}
+                                      onClick={() =>
+                                        regenerateSceneImage(scene)
+                                      }
                                       disabled={isGeneratingImage}
                                     >
                                       {isGeneratingImage ? (
@@ -751,7 +871,9 @@ Return as valid JSON array. Total duration should match script length (approxima
                                       ) : (
                                         <RefreshCw className="mr-2 h-3 w-3" />
                                       )}
-                                      {isGeneratingImage ? 'Generating...' : 'Regenerate'}
+                                      {isGeneratingImage
+                                        ? "Generating..."
+                                        : "Regenerate"}
                                     </Button>
                                   )}
                                 </div>
@@ -762,7 +884,7 @@ Return as valid JSON array. Total duration should match script length (approxima
                             {scene.generatedImageUrl && (
                               <div className="border rounded-md overflow-hidden">
                                 <ImageViewer
-                                  src={scene.generatedImageUrl} 
+                                  src={scene.generatedImageUrl}
                                   alt={`Scene ${scene.sceneNumber} preview`}
                                 />
                               </div>
@@ -794,7 +916,7 @@ Return as valid JSON array. Total duration should match script length (approxima
           <Button
             onClick={handleFinalizeStoryboard}
             disabled={localIsGenerating || isFinalizing}
-            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-full py-6"
+            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-2xl py-6 shadow-md transition-all hover:shadow-xl"
           >
             {isFinalizing ? (
               <>
