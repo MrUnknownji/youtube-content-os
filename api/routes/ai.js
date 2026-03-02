@@ -1,7 +1,29 @@
-// AI Proxy Routes - Server-side AI generation to keep API keys secure
 const { GoogleGenAI } = require("@google/genai");
 const express = require("express");
 const router = express.Router();
+
+function createGeminiClient(req) {
+  const apiKey = req.headers["x-gemini-api-key"] || process.env.GEMINI_API_KEY;
+  const apiType =
+    req.headers["x-gemini-api-type"] ||
+    process.env.GEMINI_API_TYPE ||
+    "ai-studio";
+
+  if (apiType === "vertex-ai") {
+    if (apiKey) {
+      // Vertex AI Express mode: API key only (starts with "AQ.")
+      // project/location must NOT be passed alongside apiKey
+      return new GoogleGenAI({ apiKey, vertexai: true });
+    }
+    // Vertex AI ADC / service-account mode: project + location, no apiKey
+    const project = process.env.GOOGLE_CLOUD_PROJECT;
+    const location = process.env.GOOGLE_CLOUD_LOCATION || "us-central1";
+    return new GoogleGenAI({ vertexai: true, project, location });
+  }
+
+  // AI Studio mode: standard API key
+  return new GoogleGenAI({ apiKey });
+}
 
 // POST /api/ai/generate - Proxy AI generation requests
 router.post("/generate", async (req, res) => {
@@ -29,7 +51,10 @@ router.post("/generate", async (req, res) => {
     if (type === "image") {
       if (model.includes("gpt-image")) {
         return await generateOpenAIImage(req, res, { prompt, model });
-      } else if (model.includes("gemini-3-pro-image")) {
+      } else if (
+        model.includes("gemini-3.1-flash-image") ||
+        model.includes("gemini-3-pro-image")
+      ) {
         return await generateGeminiImage(req, res, { prompt, model });
       } else {
         return await generateOpenAIImage(req, res, {
@@ -173,17 +198,24 @@ async function generateOpenAIImage(req, res, options) {
 }
 
 async function generateGeminiImage(req, res, options) {
-  const apiKey = req.headers["x-gemini-api-key"] || process.env.GEMINI_API_KEY;
+  const hasKey = !!(
+    req.headers["x-gemini-api-key"] || process.env.GEMINI_API_KEY
+  );
+  const apiType =
+    req.headers["x-gemini-api-type"] ||
+    process.env.GEMINI_API_TYPE ||
+    "ai-studio";
+  const isVertexMode = apiType === "vertex-ai";
 
-  if (!apiKey) {
+  if (!hasKey && !isVertexMode) {
     return generateMock(res, { ...options, type: "image" });
   }
 
   try {
-    console.log("Generating image with Gemini 3 Pro Image Preview...");
+    const modelName = options.model || "gemini-3.1-flash-image-preview";
+    console.log(`Generating image with ${modelName} (${apiType})...`);
 
-    const ai = new GoogleGenAI({ apiKey });
-    const modelName = options.model || "gemini-3-pro-image-preview";
+    const ai = createGeminiClient(req);
 
     const response = await ai.models.generateContent({
       model: modelName,
@@ -265,9 +297,16 @@ async function generateAnthropic(req, res, options) {
 }
 
 async function generateGemini(req, res, options) {
-  const apiKey = req.headers["x-gemini-api-key"] || process.env.GEMINI_API_KEY;
+  const hasKey = !!(
+    req.headers["x-gemini-api-key"] || process.env.GEMINI_API_KEY
+  );
+  const apiType =
+    req.headers["x-gemini-api-type"] ||
+    process.env.GEMINI_API_TYPE ||
+    "ai-studio";
+  const isVertexMode = apiType === "vertex-ai";
 
-  if (!apiKey) {
+  if (!hasKey && !isVertexMode) {
     return generateMock(res, options);
   }
 
@@ -275,12 +314,12 @@ async function generateGemini(req, res, options) {
     options.model || process.env.GEMINI_MODEL || "gemini-3-flash-preview";
 
   try {
-    console.log(`Initializing Gemini V2 SDK with model: ${modelName}`);
+    console.log(
+      `Initializing Gemini SDK [${apiType}] with model: ${modelName}`,
+    );
 
-    // Initialize V2 SDK
-    const ai = new GoogleGenAI({ apiKey });
+    const ai = createGeminiClient(req);
 
-    // Prepare content parts
     const parts = [{ text: options.prompt }];
 
     if (
@@ -292,7 +331,6 @@ async function generateGemini(req, res, options) {
         `Processing ${options.images.length} images for Gemini Vision`,
       );
       options.images.forEach((img) => {
-        // Handle data:image/fmt;base64, prefix
         const match = img.match(/^data:(image\/\w+);base64,(.+)$/);
         const mimeType = match ? match[1] : "image/jpeg";
         const data = match ? match[2] : img;
@@ -306,7 +344,6 @@ async function generateGemini(req, res, options) {
       });
     }
 
-    // Generate content using V2 API
     const response = await ai.models.generateContent({
       model: modelName,
       contents: [{ role: "user", parts }],
@@ -318,21 +355,36 @@ async function generateGemini(req, res, options) {
       },
     });
 
-    // V2 SDK Response handling - safely access text
     const text = response.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
     res.json({
       success: true,
       data: text,
       fallbackUsed: false,
-      message: "Generated successfully with Gemini V2 SDK",
+      message: `Generated successfully with Gemini [${apiType}]`,
     });
   } catch (error) {
-    console.error("Gemini V2 SDK error:", error);
-    // If specific model fails, try fallback to gemini-3-flash-preview
+    const apiType =
+      req.headers["x-gemini-api-type"] ||
+      process.env.GEMINI_API_TYPE ||
+      "ai-studio";
+    const errMsg = error?.message || String(error);
+    console.error("Gemini SDK error:", errMsg);
+
+    let diagnosis = errMsg;
     if (
-      error.message &&
-      error.message.includes("not found") &&
+      errMsg.includes("API keys are not supported") ||
+      errMsg.includes("UNAUTHENTICATED") ||
+      errMsg.includes("OAuth2")
+    ) {
+      diagnosis =
+        `[Vertex AI] AI Studio API keys (AIza...) are rejected by Vertex AI endpoints. ` +
+        `Use a Vertex AI Express key (starts with AQ.) or switch API Source to "AI Studio" in Settings.`;
+    } else if (errMsg.includes("mutually exclusive")) {
+      diagnosis =
+        "[Vertex AI] SDK config error: apiKey and project/location cannot be used together.";
+    } else if (
+      errMsg.includes("not found") &&
       modelName !== "gemini-3-flash-preview"
     ) {
       console.log("Retrying with gemini-3-flash-preview...");
@@ -340,9 +392,19 @@ async function generateGemini(req, res, options) {
         ...options,
         model: "gemini-3-flash-preview",
       });
+    } else if (
+      errMsg.includes("429") ||
+      errMsg.includes("RESOURCE_EXHAUSTED")
+    ) {
+      diagnosis = "Rate limit / quota exceeded for this API key.";
     }
 
-    return generateMock(res, options);
+    return res.json({
+      success: false,
+      data: null,
+      fallbackUsed: true,
+      message: `Gemini [${apiType}] error: ${diagnosis}`,
+    });
   }
 }
 

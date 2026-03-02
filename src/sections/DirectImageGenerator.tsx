@@ -1,18 +1,18 @@
 // Direct Image Generator - Generate images from prompts directly
-import { useState, useRef } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
+import { useState, useRef } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from "@/components/ui/select";
 import {
   Wand2,
   Image as ImageIcon,
@@ -26,19 +26,19 @@ import {
   Sparkles,
   AlertCircle,
   History,
-  Clock
-} from 'lucide-react';
-import { toast } from 'sonner';
-import { useImageGenerationQueue } from '@/hooks/useImageGenerationQueue';
-import { getAIGateway } from '@/services/ai-provider';
-import { getAISettings } from '@/components/SettingsDialog';
+  Clock,
+} from "lucide-react";
+import { toast } from "sonner";
+import { useImageGenerationQueue } from "@/hooks/useImageGenerationQueue";
+import { getAIGateway } from "@/services/ai-provider";
+import { getAISettings } from "@/components/SettingsDialog";
 import {
   Dialog,
   DialogContent,
   DialogTitle,
   DialogDescription,
-} from '@/components/ui/dialog';
-import { ScrollArea } from '@/components/ui/scroll-area';
+} from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface GeneratedImage {
   id: string;
@@ -49,31 +49,74 @@ interface GeneratedImage {
   size: string;
 }
 
+interface StoredImageMeta {
+  id: string;
+  prompt: string;
+  createdAt: string;
+  model: string;
+  size: string;
+}
+
+// In-memory store for image data (base64 is too large for localStorage)
+const imageDataCache = new Map<string, string>();
+
 const IMAGE_SIZES = [
-  { value: '1024x1024', label: 'Square (1024x1024)' },
-  { value: '1024x1536', label: 'Portrait (1024x1536)' },
-  { value: '1536x1024', label: 'Landscape (1536x1024)' },
+  { value: "1024x1024", label: "Square (1024x1024)" },
+  { value: "1024x1536", label: "Portrait (1024x1536)" },
+  { value: "1536x1024", label: "Landscape (1536x1024)" },
 ];
 
 export function DirectImageGenerator() {
-  const [prompt, setPrompt] = useState('');
-  const [size, setSize] = useState('1024x1024');
-  const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>(() => {
-    const stored = localStorage.getItem('yco-generated-images');
-    if (stored) {
+  const [prompt, setPrompt] = useState("");
+  const [size, setSize] = useState("1024x1024");
+  const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>(
+    () => {
       try {
-        const parsed = JSON.parse(stored);
-        return parsed.map((img: any) => ({
-          ...img,
-          createdAt: new Date(img.createdAt)
+        const stored = localStorage.getItem("yco-generated-images");
+        if (!stored) return [];
+        const parsed: StoredImageMeta[] = JSON.parse(stored);
+        return parsed.map((meta) => ({
+          ...meta,
+          imageUrl: imageDataCache.get(meta.id) ?? "",
+          createdAt: new Date(meta.createdAt),
         }));
       } catch {
         return [];
       }
-    }
-    return [];
-  });
-  const [selectedImage, setSelectedImage] = useState<GeneratedImage | null>(null);
+    },
+  );
+
+  const saveMeta = (images: GeneratedImage[]) => {
+    const meta: StoredImageMeta[] = images.map(
+      ({ id, prompt, createdAt, model, size }) => ({
+        id,
+        prompt,
+        createdAt: createdAt.toISOString(),
+        model,
+        size,
+      }),
+    );
+
+    const tryStore = (entries: StoredImageMeta[]) => {
+      try {
+        localStorage.setItem("yco-generated-images", JSON.stringify(entries));
+      } catch (err) {
+        if (
+          (err as DOMException)?.name === "QuotaExceededError" &&
+          entries.length > 1
+        ) {
+          // Evict oldest entry and retry
+          tryStore(entries.slice(0, -1));
+        }
+        // If single entry still fails (shouldn't happen for metadata), silently skip
+      }
+    };
+
+    tryStore(meta);
+  };
+  const [selectedImage, setSelectedImage] = useState<GeneratedImage | null>(
+    null,
+  );
   const [isFullscreenOpen, setIsFullscreenOpen] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(true);
@@ -82,57 +125,64 @@ export function DirectImageGenerator() {
   const ai = getAIGateway();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const saveImages = (images: GeneratedImage[]) => {
-    localStorage.setItem('yco-generated-images', JSON.stringify(images));
-  };
-
   const handleGenerate = async () => {
     if (!prompt.trim()) {
-      toast.error('Please enter a prompt');
+      toast.error("Please enter a prompt");
       return;
     }
 
     if (!ai.isAvailable()) {
-      toast.error('AI mode is not enabled. Please enable it in Settings.');
+      toast.error("AI mode is not enabled. Please enable it in Settings.");
       return;
     }
 
     const settings = getAISettings();
     if (!settings.useImageGen) {
-      toast.error('Image generation is not enabled. Please enable it in Settings.');
+      toast.error(
+        "Image generation is not enabled. Please enable it in Settings.",
+      );
       return;
     }
 
     try {
-      const response = await generateImage(prompt.trim(), `direct-img-${Date.now()}`);
+      const response = await generateImage(
+        prompt.trim(),
+        `direct-img-${Date.now()}`,
+      );
 
-      if (response?.success) {
+      if (response?.success && response.data && !response.fallbackUsed) {
         const newImage: GeneratedImage = {
           id: `img-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           prompt: prompt.trim(),
           imageUrl: response.data,
           createdAt: new Date(),
-          model: settings.imageModel || 'gpt-image-1.5',
-          size
+          model: settings.imageModel || "gpt-image-1.5",
+          size,
         };
 
-        setGeneratedImages(prev => {
-          const updated = [newImage, ...prev].slice(0, 50);
-          saveImages(updated);
+        // Cache image data in memory (never write base64 to localStorage)
+        imageDataCache.set(newImage.id, response.data);
+
+        setGeneratedImages((prev) => {
+          const updated = [newImage, ...prev].slice(0, 20);
+          saveMeta(updated);
           return updated;
         });
         setSelectedImage(newImage);
+        toast.success("Image generated successfully");
+      } else if (response?.message) {
+        toast.error(`Generation failed: ${response.message}`);
       }
     } catch (error) {
-      console.error('Image generation error:', error);
-      toast.error('Failed to generate image. Please check your API key.');
+      console.error("Image generation error:", error);
+      toast.error("Failed to generate image. Please check your API key.");
     }
   };
 
   const handleDownload = async (image: GeneratedImage) => {
     try {
-      if (image.imageUrl.startsWith('data:')) {
-        const link = document.createElement('a');
+      if (image.imageUrl.startsWith("data:")) {
+        const link = document.createElement("a");
         link.href = image.imageUrl;
         link.download = `generated-image-${image.id}_${Date.now()}.png`;
         document.body.appendChild(link);
@@ -142,7 +192,7 @@ export function DirectImageGenerator() {
         const response = await fetch(image.imageUrl);
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
+        const link = document.createElement("a");
         link.href = url;
         link.download = `generated-image-${image.id}_${Date.now()}.png`;
         document.body.appendChild(link);
@@ -150,10 +200,10 @@ export function DirectImageGenerator() {
         document.body.removeChild(link);
         window.URL.revokeObjectURL(url);
       }
-      toast.success('Image downloaded');
+      toast.success("Image downloaded");
     } catch (error) {
-      console.error('Download failed:', error);
-      toast.error('Failed to download image');
+      console.error("Download failed:", error);
+      toast.error("Failed to download image");
     }
   };
 
@@ -161,25 +211,29 @@ export function DirectImageGenerator() {
     navigator.clipboard.writeText(image.prompt);
     setCopiedId(image.id);
     setTimeout(() => setCopiedId(null), 2000);
-    toast.success('Prompt copied to clipboard');
+    toast.success("Prompt copied to clipboard");
   };
 
   const deleteImage = (id: string) => {
-    const updated = generatedImages.filter(img => img.id !== id);
+    imageDataCache.delete(id);
+    const updated = generatedImages.filter((img) => img.id !== id);
     setGeneratedImages(updated);
-    saveImages(updated);
+    saveMeta(updated);
     if (selectedImage?.id === id) {
       setSelectedImage(null);
     }
-    toast.success('Image removed');
+    toast.success("Image removed");
   };
 
   const clearHistory = () => {
-    if (window.confirm('Are you sure you want to clear all generated images?')) {
+    if (
+      window.confirm("Are you sure you want to clear all generated images?")
+    ) {
+      imageDataCache.clear();
       setGeneratedImages([]);
-      saveImages([]);
+      saveMeta([]);
       setSelectedImage(null);
-      toast.success('History cleared');
+      toast.success("History cleared");
     }
   };
 
@@ -187,11 +241,11 @@ export function DirectImageGenerator() {
     setPrompt(image.prompt);
     setSize(image.size);
     textareaRef.current?.focus();
-    toast.info('Prompt loaded. Click Generate to create a new version.');
+    toast.info("Prompt loaded. Click Generate to create a new version.");
   };
 
   const formatTime = (date: Date) => {
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   };
 
   const isAIEnabled = ai.isAvailable();
@@ -203,13 +257,20 @@ export function DirectImageGenerator() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-semibold font-sans text-foreground">Image Generator</h2>
+          <h2 className="text-2xl font-semibold font-sans text-foreground">
+            Image Generator
+          </h2>
           <p className="text-muted-foreground mt-1">
             Generate images directly from text prompts
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant={isAIEnabled && isImageGenEnabled ? 'default' : 'destructive'} className="gap-1">
+          <Badge
+            variant={
+              isAIEnabled && isImageGenEnabled ? "default" : "destructive"
+            }
+            className="gap-1"
+          >
             {isAIEnabled && isImageGenEnabled ? (
               <>
                 <Sparkles className="h-3 w-3" />
@@ -218,7 +279,7 @@ export function DirectImageGenerator() {
             ) : (
               <>
                 <AlertCircle className="h-3 w-3" />
-                {!isAIEnabled ? 'AI Disabled' : 'Image Gen Disabled'}
+                {!isAIEnabled ? "AI Disabled" : "Image Gen Disabled"}
               </>
             )}
           </Badge>
@@ -232,12 +293,14 @@ export function DirectImageGenerator() {
             <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
             <div>
               <p className="font-medium text-destructive">
-                {!isAIEnabled ? 'AI Mode is disabled' : 'Image Generation is disabled'}
+                {!isAIEnabled
+                  ? "AI Mode is disabled"
+                  : "Image Generation is disabled"}
               </p>
               <p className="text-sm text-muted-foreground mt-1">
-                {!isAIEnabled 
-                  ? 'Please enable AI Mode in Settings to generate images.' 
-                  : 'Please enable Image Generation in Settings to use this feature.'}
+                {!isAIEnabled
+                  ? "Please enable AI Mode in Settings to generate images."
+                  : "Please enable Image Generation in Settings to use this feature."}
               </p>
             </div>
           </CardContent>
@@ -262,7 +325,7 @@ export function DirectImageGenerator() {
               className="min-h-[120px] resize-none bg-input border-input"
               disabled={!isAIEnabled || !isImageGenEnabled}
               onKeyDown={(e) => {
-                if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+                if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
                   handleGenerate();
                 }
               }}
@@ -301,7 +364,12 @@ export function DirectImageGenerator() {
 
             <Button
               onClick={handleGenerate}
-              disabled={isAnyGenerating || !isAIEnabled || !isImageGenEnabled || !prompt.trim()}
+              disabled={
+                isAnyGenerating ||
+                !isAIEnabled ||
+                !isImageGenEnabled ||
+                !prompt.trim()
+              }
               className="bg-primary hover:bg-primary/90 text-primary-foreground min-w-[140px]"
             >
               {isAnyGenerating ? (
@@ -333,7 +401,7 @@ export function DirectImageGenerator() {
                   className="w-full h-auto max-h-[600px] object-contain bg-muted"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                
+
                 {/* Overlay Controls */}
                 <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                   <Button
@@ -358,10 +426,16 @@ export function DirectImageGenerator() {
                 <div className="absolute bottom-0 left-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Badge variant="secondary" className="bg-background/90 backdrop-blur-sm">
+                      <Badge
+                        variant="secondary"
+                        className="bg-background/90 backdrop-blur-sm"
+                      >
                         {selectedImage.size}
                       </Badge>
-                      <Badge variant="secondary" className="bg-background/90 backdrop-blur-sm">
+                      <Badge
+                        variant="secondary"
+                        className="bg-background/90 backdrop-blur-sm"
+                      >
                         {selectedImage.model}
                       </Badge>
                     </div>
@@ -392,7 +466,7 @@ export function DirectImageGenerator() {
                   </div>
                 </div>
               </div>
-              
+
               <CardContent className="p-4 border-t border-border">
                 <p className="text-sm text-muted-foreground line-clamp-3">
                   <span className="font-medium text-foreground">Prompt: </span>
@@ -411,9 +485,9 @@ export function DirectImageGenerator() {
                   <ImageIcon className="h-8 w-8 text-muted-foreground" />
                 </div>
                 <p className="text-muted-foreground">
-                  {generatedImages.length > 0 
-                    ? 'Select an image from history to view' 
-                    : 'Your generated images will appear here'}
+                  {generatedImages.length > 0
+                    ? "Select an image from history to view"
+                    : "Your generated images will appear here"}
                 </p>
               </CardContent>
             </Card>
@@ -459,7 +533,9 @@ export function DirectImageGenerator() {
                     <Card
                       key={image.id}
                       className={`border-border cursor-pointer transition-all hover:shadow-md ${
-                        selectedImage?.id === image.id ? 'ring-1 ring-primary' : ''
+                        selectedImage?.id === image.id
+                          ? "ring-1 ring-primary"
+                          : ""
                       }`}
                       onClick={() => setSelectedImage(image)}
                     >

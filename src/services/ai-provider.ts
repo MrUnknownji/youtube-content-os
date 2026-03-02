@@ -5,6 +5,7 @@ import type { AIConfig, AIGenerateRequest, AIGenerateResponse, AIProvider } from
 interface AISettings {
   useAI: boolean;
   geminiApiKey: string;
+  geminiApiType?: 'ai-studio' | 'vertex-ai';
   geminiModel?: string;
   useImageGen?: boolean;
   imageModel?: string;
@@ -22,6 +23,7 @@ function getAISettings(): AISettings {
   return {
     useAI: false,
     geminiApiKey: '',
+    geminiApiType: 'ai-studio',
     geminiModel: 'gemini-3-flash-preview',
     useImageGen: false,
     imageModel: 'gpt-image-1.5'
@@ -132,37 +134,73 @@ class AIGateway {
         const headers: Record<string, string> = {
           'Content-Type': 'application/json'
         };
-        
-        // Add API key from settings if provided
+
         if (currentSettings.geminiApiKey) {
           headers['x-gemini-api-key'] = currentSettings.geminiApiKey;
+        }
+        if (currentSettings.geminiApiType) {
+          headers['x-gemini-api-type'] = currentSettings.geminiApiType;
         }
 
         const isProd = import.meta.env.PROD;
         const apiUrl = import.meta.env.VITE_API_URL || (isProd ? '/api' : 'http://localhost:3001/api');
+        const targetUrl = `${apiUrl}/ai/generate`;
 
-        // Determine model based on type
         const model = request.type === 'image'
           ? currentSettings.imageModel || 'gpt-image-1.5'
           : currentSettings.geminiModel || 'gemini-3-flash-preview';
 
-        const response = await fetch(`${apiUrl}/ai/generate`, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
-            provider: 'gemini', // Backend handles logic
-            prompt: request.prompt,
-            type: request.type || 'text',
-            images: request.images,
-            format: request.format,
-            model,
-            temperature: 0.7,
-            maxTokens: request.config?.maxTokens || 8192
-          })
-        });
+        const body = {
+          provider: 'gemini',
+          prompt: request.prompt,
+          type: request.type || 'text',
+          images: request.images,
+          format: request.format,
+          model,
+          temperature: 0.7,
+          maxTokens: request.config?.maxTokens || 8192
+        };
+
+        console.group('%c[AI] generate()', 'color:#6366f1;font-weight:bold');
+        console.log('URL:', targetUrl);
+        console.log('Type:', request.type || 'text');
+        console.log('Model:', model);
+        console.log('API source:', currentSettings.geminiApiType || 'ai-studio');
+        console.log('API key:', currentSettings.geminiApiKey
+          ? `set (${currentSettings.geminiApiKey.slice(0, 8)}…)`
+          : 'not set — using server .env');
+        console.groupEnd();
+
+        let response: Response;
+        try {
+          response = await fetch(targetUrl, { method: 'POST', headers, body: JSON.stringify(body) });
+        } catch (networkError) {
+          const err = networkError as Error;
+          console.group('%c[AI] ❌ Network error — fetch() threw before getting a response', 'color:red;font-weight:bold');
+          console.error('Error:', err.name, '-', err.message);
+          if (err.message === 'Failed to fetch') {
+            console.error(
+              '\nDiagnosis: The API server at', targetUrl, 'is unreachable.\n',
+              '\nPossible causes:',
+              '\n  1. API server is NOT running → run: cd api && node index.js (or npm run dev in /api)',
+              '\n  2. Wrong port → server should be on 3001, check api/index.js',
+              '\n  3. CORS preflight blocked → open Network tab, look for a failing OPTIONS request',
+              '\n  4. Browser extension intercepting the request'
+            );
+          }
+          console.groupEnd();
+          throw networkError;
+        }
+
+        console.log('%c[AI] HTTP', 'color:#6366f1', response.status, response.statusText, targetUrl);
 
         if (response.ok) {
           const result = await response.json();
+          console.log('%c[AI] ✅ Success', 'color:green', {
+            success: result.success,
+            fallbackUsed: result.fallbackUsed,
+            message: result.message
+          });
           if (result.success && !result.fallbackUsed) {
             return {
               success: true,
@@ -171,11 +209,32 @@ class AIGateway {
               message: 'Generated with Gemini 3 Flash'
             };
           }
+          if (!result.success) {
+            console.error('%c[AI] ❌ Gemini API error from server:', 'color:red;font-weight:bold', result.message);
+          } else {
+            console.warn('[AI] Server used fallback/template mode:', result.message);
+          }
+        } else {
+          let errorBody = '';
+          try { errorBody = await response.text(); } catch { /* ignore */ }
+          console.group('%c[AI] ❌ Server returned HTTP error', 'color:red;font-weight:bold');
+          console.error('Status:', response.status, response.statusText);
+          console.error('Body:', errorBody);
+          if (response.status === 401 || response.status === 403) {
+            console.error('Diagnosis: API key rejected. Verify your Gemini key in Settings.');
+          } else if (response.status === 404) {
+            console.error('Diagnosis: Route not found — /api/ai/generate may not be registered on the server.');
+          } else if (response.status === 429) {
+            console.error('Diagnosis: Rate limit / quota exceeded for this API key.');
+          } else if (response.status === 500) {
+            console.error('Diagnosis: Server-side exception. Check the terminal running the API server for the stack trace.');
+          }
+          console.groupEnd();
         }
-        
-        console.warn('Gemini API call failed, falling back to templates');
+
+        console.warn('[AI] Falling back to template mode.');
       } catch (error) {
-        console.error('AI request failed:', error);
+        console.error('[AI] Unhandled exception in generate():', error);
       }
     }
 

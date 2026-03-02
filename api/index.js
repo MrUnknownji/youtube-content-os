@@ -21,6 +21,7 @@ const corsOptions = {
     "Authorization",
     "x-api-key",
     "x-gemini-api-key",
+    "x-gemini-api-type",
     "x-openai-api-key",
     "x-anthropic-api-key",
   ],

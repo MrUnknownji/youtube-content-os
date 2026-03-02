@@ -1,5 +1,5 @@
 // Settings Dialog Component - AI Mode Toggle
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -8,25 +8,38 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Settings, Eye, EyeOff, Sparkles, Zap, Trash2, AlertTriangle, Database, ImageIcon, Cloud } from 'lucide-react';
-import { toast } from 'sonner';
-import { useProjectStore } from '@/state/projectStore';
+} from "@/components/ui/select";
+import {
+  Settings,
+  Eye,
+  EyeOff,
+  Sparkles,
+  Zap,
+  Trash2,
+  AlertTriangle,
+  Database,
+  ImageIcon,
+  Cloud,
+  ToggleLeft,
+} from "lucide-react";
+import { toast } from "sonner";
+import { useProjectStore } from "@/state/projectStore";
 
 interface AISettings {
   useAI: boolean;
   geminiApiKey: string;
+  geminiApiType: "ai-studio" | "vertex-ai";
   geminiModel: string;
   mongoUri: string;
   useImageGen: boolean;
@@ -37,7 +50,7 @@ interface AISettings {
   cloudinaryApiSecret: string;
 }
 
-const STORAGE_KEY = 'yco-ai-settings';
+const STORAGE_KEY = "yco-ai-settings";
 
 export function getAISettings(): AISettings {
   try {
@@ -47,31 +60,33 @@ export function getAISettings(): AISettings {
       // Ensure new fields exist
       return {
         useAI: parsed.useAI ?? false,
-        geminiApiKey: parsed.geminiApiKey ?? '',
-        geminiModel: parsed.geminiModel ?? 'gemini-3-flash-preview',
-        mongoUri: parsed.mongoUri ?? '',
+        geminiApiKey: parsed.geminiApiKey ?? "",
+        geminiApiType: parsed.geminiApiType ?? "ai-studio",
+        geminiModel: parsed.geminiModel ?? "gemini-3-flash-preview",
+        mongoUri: parsed.mongoUri ?? "",
         useImageGen: parsed.useImageGen ?? false,
-        imageModel: parsed.imageModel ?? 'gpt-image-1.5',
+        imageModel: parsed.imageModel ?? "gpt-image-1.5",
         useCloudinary: parsed.useCloudinary ?? false,
-        cloudinaryCloudName: parsed.cloudinaryCloudName ?? '',
-        cloudinaryApiKey: parsed.cloudinaryApiKey ?? '',
-        cloudinaryApiSecret: parsed.cloudinaryApiSecret ?? ''
+        cloudinaryCloudName: parsed.cloudinaryCloudName ?? "",
+        cloudinaryApiKey: parsed.cloudinaryApiKey ?? "",
+        cloudinaryApiSecret: parsed.cloudinaryApiSecret ?? "",
       };
     }
   } catch (e) {
-    console.error('Failed to load AI settings:', e);
+    console.error("Failed to load AI settings:", e);
   }
   return {
     useAI: false,
-    geminiApiKey: '',
-    geminiModel: 'gemini-3-flash-preview',
-    mongoUri: '',
+    geminiApiKey: "",
+    geminiApiType: "ai-studio",
+    geminiModel: "gemini-3-flash-preview",
+    mongoUri: "",
     useImageGen: false,
-    imageModel: 'gpt-image-1.5',
+    imageModel: "gpt-image-1.5",
     useCloudinary: false,
-    cloudinaryCloudName: '',
-    cloudinaryApiKey: '',
-    cloudinaryApiSecret: ''
+    cloudinaryCloudName: "",
+    cloudinaryApiKey: "",
+    cloudinaryApiSecret: "",
   };
 }
 
@@ -79,7 +94,7 @@ export function saveAISettings(settings: AISettings) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
   } catch (e) {
-    console.error('Failed to save AI settings:', e);
+    console.error("Failed to save AI settings:", e);
   }
 }
 
@@ -108,33 +123,43 @@ export function SettingsDialog() {
 
   const handleSave = () => {
     saveAISettings(settings);
-    toast.success(settings.useAI ? 'AI Mode enabled - Using Gemini' : 'Template Mode enabled');
+    toast.success(
+      settings.useAI
+        ? "AI Mode enabled - Using Gemini"
+        : "Template Mode enabled",
+    );
     setOpen(false);
     // Dispatch event for components to react to the change
-    window.dispatchEvent(new CustomEvent('ai-settings-changed', { detail: settings }));
+    window.dispatchEvent(
+      new CustomEvent("ai-settings-changed", { detail: settings }),
+    );
   };
 
   const handleToggleAI = (checked: boolean) => {
-    setSettings(prev => ({ ...prev, useAI: checked }));
+    setSettings((prev) => ({ ...prev, useAI: checked }));
   };
 
   const handleToggleImageGen = (checked: boolean) => {
-    setSettings(prev => ({ 
-      ...prev, 
+    setSettings((prev) => ({
+      ...prev,
       useImageGen: checked,
-      useCloudinary: checked ? prev.useCloudinary : false
+      useCloudinary: checked ? prev.useCloudinary : false,
     }));
   };
 
   const handleToggleCloudinary = (checked: boolean) => {
-    setSettings(prev => ({ ...prev, useCloudinary: checked }));
+    setSettings((prev) => ({ ...prev, useCloudinary: checked }));
   };
 
   const handleReset = () => {
-    if (window.confirm('Are you sure you want to reset the application? This will delete the current project and all pinned items.')) {
+    if (
+      window.confirm(
+        "Are you sure you want to reset the application? This will delete the current project and all pinned items.",
+      )
+    ) {
       createNewProject();
       setPinnedItems([]);
-      toast.success('Application reset successfully');
+      toast.success("Application reset successfully");
       setOpen(false);
     }
   };
@@ -177,12 +202,12 @@ export function SettingsDialog() {
               )}
               <div>
                 <p className="font-medium text-foreground">
-                  {settings.useAI ? 'AI Mode' : 'Template Mode'}
+                  {settings.useAI ? "AI Mode" : "Template Mode"}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  {settings.useAI 
-                    ? 'Using Gemini 3 Flash for generation' 
-                    : 'Using pre-built templates'}
+                  {settings.useAI
+                    ? "Using Gemini 3 Flash for generation"
+                    : "Using pre-built templates"}
                 </p>
               </div>
             </div>
@@ -196,17 +221,75 @@ export function SettingsDialog() {
           {/* API Key & Model Input - Only shown when AI mode is enabled */}
           {settings.useAI && (
             <div className="space-y-4 p-4 rounded-lg border border-primary/30 bg-primary/5">
+              {/* API Type Toggle */}
+              <div className="space-y-2">
+                <Label className="font-sans text-foreground flex items-center gap-2">
+                  <ToggleLeft className="h-4 w-4" />
+                  API Source
+                </Label>
+                <div className="flex rounded-md border border-input overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setSettings((prev) => ({
+                        ...prev,
+                        geminiApiType: "ai-studio",
+                      }))
+                    }
+                    className={`flex-1 px-3 py-2 text-sm font-medium transition-colors ${
+                      settings.geminiApiType === "ai-studio"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-input text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    AI Studio
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setSettings((prev) => ({
+                        ...prev,
+                        geminiApiType: "vertex-ai",
+                      }))
+                    }
+                    className={`flex-1 px-3 py-2 text-sm font-medium transition-colors border-l border-input ${
+                      settings.geminiApiType === "vertex-ai"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-input text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Vertex AI
+                  </button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {settings.geminiApiType === "ai-studio"
+                    ? "Standard API key from Google AI Studio (aistudio.google.com)"
+                    : "Vertex AI — uses ADC/service account on the server, or an express API key"}
+                </p>
+              </div>
+
               <div className="space-y-2">
                 <Label className="font-sans text-foreground flex items-center gap-2">
                   <Sparkles className="h-4 w-4" />
-                  Gemini API Key
+                  {settings.geminiApiType === "vertex-ai"
+                    ? "Vertex AI API Key (optional)"
+                    : "Gemini API Key"}
                 </Label>
                 <div className="relative">
                   <Input
-                    type={showKey ? 'text' : 'password'}
-                    placeholder="AIza..."
+                    type={showKey ? "text" : "password"}
+                    placeholder={
+                      settings.geminiApiType === "vertex-ai"
+                        ? "Express key or leave empty for ADC"
+                        : "AIza..."
+                    }
                     value={settings.geminiApiKey}
-                    onChange={(e) => setSettings(prev => ({ ...prev, geminiApiKey: e.target.value }))}
+                    onChange={(e) =>
+                      setSettings((prev) => ({
+                        ...prev,
+                        geminiApiKey: e.target.value,
+                      }))
+                    }
                     className="bg-input border-input pr-10"
                   />
                   <button
@@ -214,11 +297,17 @@ export function SettingsDialog() {
                     onClick={() => setShowKey(!showKey)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                   >
-                    {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {showKey ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
                   </button>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Leave empty to use the server's configured API key from .env
+                  {settings.geminiApiType === "vertex-ai"
+                    ? "Leave empty to rely on GOOGLE_APPLICATION_CREDENTIALS set on the server"
+                    : "Leave empty to use the server's configured API key from .env"}
                 </p>
               </div>
 
@@ -229,14 +318,20 @@ export function SettingsDialog() {
                 </Label>
                 <Select
                   value={settings.geminiModel}
-                  onValueChange={(value) => setSettings(prev => ({ ...prev, geminiModel: value }))}
+                  onValueChange={(value) =>
+                    setSettings((prev) => ({ ...prev, geminiModel: value }))
+                  }
                 >
                   <SelectTrigger className="w-full bg-input border-input">
                     <SelectValue placeholder="Select Model" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="gemini-3-flash-preview">Gemini 3 Flash (Fast)</SelectItem>
-                    <SelectItem value="gemini-3-pro-preview">Gemini 3 Pro (Capable)</SelectItem>
+                    <SelectItem value="gemini-3-flash-preview">
+                      Gemini 3 Flash (Fast)
+                    </SelectItem>
+                    <SelectItem value="gemini-3-pro-preview">
+                      Gemini 3 Pro (Capable)
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -252,7 +347,9 @@ export function SettingsDialog() {
                     <ImageIcon className="h-5 w-5 text-accent-foreground" />
                   </div>
                   <div>
-                    <p className="font-medium text-foreground">Image Generation</p>
+                    <p className="font-medium text-foreground">
+                      Image Generation
+                    </p>
                     <p className="text-sm text-muted-foreground">
                       Enable AI image creation
                     </p>
@@ -268,17 +365,25 @@ export function SettingsDialog() {
               {settings.useImageGen && (
                 <div className="space-y-4 pt-2 border-t border-border">
                   <div className="space-y-2">
-                    <Label className="font-sans text-foreground">Image Model</Label>
+                    <Label className="font-sans text-foreground">
+                      Image Model
+                    </Label>
                     <Select
                       value={settings.imageModel}
-                      onValueChange={(value) => setSettings(prev => ({ ...prev, imageModel: value }))}
+                      onValueChange={(value) =>
+                        setSettings((prev) => ({ ...prev, imageModel: value }))
+                      }
                     >
                       <SelectTrigger className="w-full bg-input border-input">
                         <SelectValue placeholder="Select Model" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="gpt-image-1.5">GPT Image 1.5 (OpenAI)</SelectItem>
-                        <SelectItem value="gemini-3-pro-image-preview">Gemini 3 Pro Image (Google)</SelectItem>
+                        <SelectItem value="gpt-image-1.5">
+                          GPT Image 1.5 (OpenAI)
+                        </SelectItem>
+                        <SelectItem value="gemini-3.1-flash-image-preview">
+                          Gemini 3.1 Flash Image (Google)
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -289,7 +394,9 @@ export function SettingsDialog() {
                         <Cloud className="h-4 w-4 text-muted-foreground" />
                       </div>
                       <div>
-                        <p className="font-medium text-foreground text-sm">Cloudinary Upload</p>
+                        <p className="font-medium text-foreground text-sm">
+                          Cloudinary Upload
+                        </p>
                         <p className="text-xs text-muted-foreground">
                           Store images in cloud (optional)
                         </p>
@@ -305,54 +412,88 @@ export function SettingsDialog() {
                   {settings.useCloudinary && (
                     <div className="space-y-3 pt-2 border-t border-border">
                       <div className="space-y-2">
-                        <Label className="font-sans text-foreground text-sm">Cloud Name</Label>
+                        <Label className="font-sans text-foreground text-sm">
+                          Cloud Name
+                        </Label>
                         <Input
                           placeholder="your-cloud-name"
                           value={settings.cloudinaryCloudName}
-                          onChange={(e) => setSettings(prev => ({ ...prev, cloudinaryCloudName: e.target.value }))}
+                          onChange={(e) =>
+                            setSettings((prev) => ({
+                              ...prev,
+                              cloudinaryCloudName: e.target.value,
+                            }))
+                          }
                           className="bg-input border-input"
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label className="font-sans text-foreground text-sm">API Key</Label>
+                        <Label className="font-sans text-foreground text-sm">
+                          API Key
+                        </Label>
                         <div className="relative">
                           <Input
-                            type={showCloudinaryKey ? 'text' : 'password'}
+                            type={showCloudinaryKey ? "text" : "password"}
                             placeholder="123456789012345"
                             value={settings.cloudinaryApiKey}
-                            onChange={(e) => setSettings(prev => ({ ...prev, cloudinaryApiKey: e.target.value }))}
+                            onChange={(e) =>
+                              setSettings((prev) => ({
+                                ...prev,
+                                cloudinaryApiKey: e.target.value,
+                              }))
+                            }
                             className="bg-input border-input pr-10"
                           />
                           <button
                             type="button"
-                            onClick={() => setShowCloudinaryKey(!showCloudinaryKey)}
+                            onClick={() =>
+                              setShowCloudinaryKey(!showCloudinaryKey)
+                            }
                             className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                           >
-                            {showCloudinaryKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            {showCloudinaryKey ? (
+                              <EyeOff className="h-4 w-4" />
+                            ) : (
+                              <Eye className="h-4 w-4" />
+                            )}
                           </button>
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <Label className="font-sans text-foreground text-sm">API Secret</Label>
+                        <Label className="font-sans text-foreground text-sm">
+                          API Secret
+                        </Label>
                         <div className="relative">
                           <Input
-                            type={showCloudinarySecret ? 'text' : 'password'}
+                            type={showCloudinarySecret ? "text" : "password"}
                             placeholder="••••••••••••••••"
                             value={settings.cloudinaryApiSecret}
-                            onChange={(e) => setSettings(prev => ({ ...prev, cloudinaryApiSecret: e.target.value }))}
+                            onChange={(e) =>
+                              setSettings((prev) => ({
+                                ...prev,
+                                cloudinaryApiSecret: e.target.value,
+                              }))
+                            }
                             className="bg-input border-input pr-10"
                           />
                           <button
                             type="button"
-                            onClick={() => setShowCloudinarySecret(!showCloudinarySecret)}
+                            onClick={() =>
+                              setShowCloudinarySecret(!showCloudinarySecret)
+                            }
                             className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                           >
-                            {showCloudinarySecret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            {showCloudinarySecret ? (
+                              <EyeOff className="h-4 w-4" />
+                            ) : (
+                              <Eye className="h-4 w-4" />
+                            )}
                           </button>
                         </div>
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        Generated images will be uploaded to Cloudinary and stored as URLs instead of base64 data.
+                        Generated images will be uploaded to Cloudinary and
+                        stored as URLs instead of base64 data.
                       </p>
                     </div>
                   )}
@@ -369,10 +510,12 @@ export function SettingsDialog() {
             </Label>
             <div className="relative">
               <Input
-                type={showMongo ? 'text' : 'password'}
+                type={showMongo ? "text" : "password"}
                 placeholder="mongodb+srv://..."
                 value={settings.mongoUri}
-                onChange={(e) => setSettings(prev => ({ ...prev, mongoUri: e.target.value }))}
+                onChange={(e) =>
+                  setSettings((prev) => ({ ...prev, mongoUri: e.target.value }))
+                }
                 className="bg-input border-input pr-10"
               />
               <button
@@ -380,7 +523,11 @@ export function SettingsDialog() {
                 onClick={() => setShowMongo(!showMongo)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
               >
-                {showMongo ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                {showMongo ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
               </button>
             </div>
             <p className="text-xs text-muted-foreground">
@@ -391,12 +538,12 @@ export function SettingsDialog() {
           {/* Info Box */}
           <div className="bg-muted/50 rounded-lg p-3 text-sm text-muted-foreground">
             <p className="font-medium text-foreground mb-1">
-              {settings.useAI ? '✨ AI Mode' : '📋 Template Mode'}
+              {settings.useAI ? "✨ AI Mode" : "📋 Template Mode"}
             </p>
             <p>
-              {settings.useAI 
-                ? 'All generation (topics, scripts, storyboards, metadata) will use Google Gemini 3 Flash for intelligent, context-aware content.'
-                : 'Uses pre-built templates for quick content generation. Great for testing or when API is unavailable.'}
+              {settings.useAI
+                ? `All generation will use Google Gemini via ${settings.geminiApiType === "vertex-ai" ? "Vertex AI" : "AI Studio"} for intelligent, context-aware content.`
+                : "Uses pre-built templates for quick content generation. Great for testing or when API is unavailable."}
             </p>
           </div>
 
@@ -404,11 +551,14 @@ export function SettingsDialog() {
           <div className="border border-destructive/20 rounded-lg overflow-hidden">
             <div className="bg-destructive/10 px-4 py-2 border-b border-destructive/20 flex items-center gap-2">
               <AlertTriangle className="h-4 w-4 text-destructive" />
-              <span className="text-sm font-medium text-destructive">Danger Zone</span>
+              <span className="text-sm font-medium text-destructive">
+                Danger Zone
+              </span>
             </div>
             <div className="p-4 bg-background">
               <p className="text-sm text-muted-foreground mb-3">
-                Reset the application to its initial state. This will delete the current project and all pinned items.
+                Reset the application to its initial state. This will delete the
+                current project and all pinned items.
               </p>
               <Button
                 variant="destructive"
@@ -450,8 +600,15 @@ export function AIModeToggle() {
     const handleChange = (e: CustomEvent<AISettings>) => {
       setUseAI(e.detail.useAI);
     };
-    window.addEventListener('ai-settings-changed', handleChange as EventListener);
-    return () => window.removeEventListener('ai-settings-changed', handleChange as EventListener);
+    window.addEventListener(
+      "ai-settings-changed",
+      handleChange as EventListener,
+    );
+    return () =>
+      window.removeEventListener(
+        "ai-settings-changed",
+        handleChange as EventListener,
+      );
   }, []);
 
   const toggleMode = () => {
@@ -459,8 +616,12 @@ export function AIModeToggle() {
     const newSettings = { ...current, useAI: !current.useAI };
     saveAISettings(newSettings);
     setUseAI(newSettings.useAI);
-    toast.success(newSettings.useAI ? 'AI Mode enabled' : 'Template Mode enabled');
-    window.dispatchEvent(new CustomEvent('ai-settings-changed', { detail: newSettings }));
+    toast.success(
+      newSettings.useAI ? "AI Mode enabled" : "Template Mode enabled",
+    );
+    window.dispatchEvent(
+      new CustomEvent("ai-settings-changed", { detail: newSettings }),
+    );
   };
 
   return (
@@ -468,11 +629,17 @@ export function AIModeToggle() {
       onClick={toggleMode}
       className={`
         flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all
-        ${useAI 
-          ? 'bg-primary/20 text-primary border border-primary/30' 
-          : 'bg-muted text-muted-foreground border border-border hover:bg-muted/80'}
+        ${
+          useAI
+            ? "bg-primary/20 text-primary border border-primary/30"
+            : "bg-muted text-muted-foreground border border-border hover:bg-muted/80"
+        }
       `}
-      title={useAI ? 'Using AI - Click to switch to Template Mode' : 'Using Templates - Click to switch to AI Mode'}
+      title={
+        useAI
+          ? "Using AI - Click to switch to Template Mode"
+          : "Using Templates - Click to switch to AI Mode"
+      }
     >
       {useAI ? (
         <>
