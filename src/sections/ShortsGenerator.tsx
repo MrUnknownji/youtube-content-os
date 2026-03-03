@@ -44,6 +44,11 @@ import {
 } from "@/components/ui/collapsible";
 import { ImageViewer } from "@/components/ImageViewer";
 import type { ShortsExtract, PinnedItem } from "@/types";
+import {
+  LanguageToggle,
+  getLanguageInstruction,
+} from "@/components/LanguageToggle";
+import type { ContentLanguage } from "@/components/LanguageToggle";
 
 const VIRAL_POTENTIAL_COLORS = {
   low: "bg-muted text-muted-foreground",
@@ -155,6 +160,8 @@ export function ShortsGenerator() {
   const [generatedThumbnails, setGeneratedThumbnails] = useState<
     Record<string, string>
   >({});
+  const [shortsLanguage, setShortsLanguage] =
+    useState<ContentLanguage>("hinglish");
 
   const ai = getAIGateway();
   const db = getDatabaseGateway();
@@ -179,9 +186,10 @@ export function ShortsGenerator() {
     localIsGenerating,
   ]);
 
-  const handleGenerateShorts = async () => {
+  const handleGenerateShorts = async (overrideLang?: ContentLanguage) => {
     if (localIsGenerating) return;
     setLocalIsGenerating(true);
+    const activeLang = overrideLang ?? shortsLanguage;
 
     try {
       const script = currentProject?.selectedScript?.content || "";
@@ -193,6 +201,8 @@ SCRIPT:
 ${script.slice(0, 2000)}
 
 TOPIC: ${topic}
+
+LANGUAGE: ${getLanguageInstruction(activeLang)}
 
 WHAT MAKES A GREAT SHORT:
 1. Self-contained — the viewer gets full value without seeing the full video
@@ -457,7 +467,16 @@ ${short.bestPostingTime}
             Extract viral-worthy shorts from your script
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          <LanguageToggle
+            value={shortsLanguage}
+            onChange={(lang) => {
+              setShortsLanguage(lang);
+              if (shorts.length > 0) {
+                setTimeout(() => handleGenerateShorts(lang), 0);
+              }
+            }}
+          />
           <div className="flex items-center gap-2">
             <Switch
               checked={generateThumbnails}
@@ -482,7 +501,7 @@ ${short.bestPostingTime}
             Export All
           </Button>
           <Button
-            onClick={handleGenerateShorts}
+            onClick={() => handleGenerateShorts()}
             disabled={localIsGenerating || !currentProject?.selectedScript}
             variant="outline"
             className="border-border"
@@ -549,7 +568,7 @@ ${short.bestPostingTime}
               YouTube, Instagram, and TikTok.
             </p>
             <Button
-              onClick={handleGenerateShorts}
+              onClick={() => handleGenerateShorts()}
               disabled={localIsGenerating || !currentProject?.selectedScript}
               className="bg-primary hover:bg-primary/90 text-primary-foreground"
             >

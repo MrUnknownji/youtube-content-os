@@ -26,6 +26,11 @@ import { getDatabaseGateway } from "@/services/db-adapter";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ScriptVariant, ScriptFormat, PinnedItem } from "@/types";
 import { MOCK_SCRIPTS } from "@/data/mock-scripts";
+import {
+  LanguageToggle,
+  getLanguageInstruction,
+} from "@/components/LanguageToggle";
+import type { ContentLanguage } from "@/components/LanguageToggle";
 
 export function ScriptStudio() {
   const {
@@ -55,6 +60,8 @@ export function ScriptStudio() {
   const [localIsGenerating, setLocalIsGenerating] = useState(false);
   const [editedContent, setEditedContent] = useState<string>("");
   const [isEditing, setIsEditing] = useState(false);
+  const [scriptLanguage, setScriptLanguage] =
+    useState<ContentLanguage>("hinglish");
 
   const ai = getAIGateway();
   const db = getDatabaseGateway();
@@ -92,9 +99,10 @@ export function ScriptStudio() {
     localIsGenerating,
   ]);
 
-  const handleGenerateScripts = async () => {
+  const handleGenerateScripts = async (overrideLang?: ContentLanguage) => {
     if (localIsGenerating) return;
     setLocalIsGenerating(true);
+    const activeLang = overrideLang ?? scriptLanguage;
 
     try {
       const topic =
@@ -123,8 +131,9 @@ ${
 - Specify transitions: [CUT TO], [ZOOM], [FADE]`
 }
 
+LANGUAGE: ${getLanguageInstruction(activeLang)}
+
 IMPORTANT:
-- Write each script in the language and tone appropriate for the topic and apparent audience
 - Make each of the 3 variants meaningfully different in approach or angle
 - Include actual, usable content — not placeholder text
 - Prioritize viewer value over engagement tricks
@@ -208,7 +217,16 @@ Return as valid JSON array with exactly these fields:
             Generate and edit scripts for your video
           </p>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 flex-wrap">
+          <LanguageToggle
+            value={scriptLanguage}
+            onChange={(lang) => {
+              setScriptLanguage(lang);
+              if (scripts.length > 0) {
+                setTimeout(() => handleGenerateScripts(lang), 0);
+              }
+            }}
+          />
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground">Facecam</span>
             <Switch
@@ -255,17 +273,19 @@ Return as valid JSON array with exactly these fields:
             Faceless
           </Badge>
         </div>
-        <Button
-          onClick={handleGenerateScripts}
-          disabled={localIsGenerating}
-          variant="outline"
-          className="border-border"
-        >
-          <RefreshCw
-            className={`mr-2 h-4 w-4 ${localIsGenerating ? "animate-spin" : ""}`}
-          />
-          Generate New Scripts
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={() => handleGenerateScripts()}
+            disabled={localIsGenerating}
+            variant="outline"
+            className="border-border"
+          >
+            <RefreshCw
+              className={`mr-2 h-4 w-4 ${localIsGenerating ? "animate-spin" : ""}`}
+            />
+            Generate New Scripts
+          </Button>
+        </div>
       </div>
 
       {/* Script Tabs / Empty State / Loading */}
@@ -340,7 +360,7 @@ Return as valid JSON array with exactly these fields:
               <span className="text-sm text-muted-foreground">Faceless</span>
             </div>
             <Button
-              onClick={handleGenerateScripts}
+              onClick={() => handleGenerateScripts()}
               disabled={localIsGenerating || !currentProject?.selectedTopic}
               className="bg-primary hover:bg-primary/90 text-primary-foreground"
             >

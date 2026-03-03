@@ -32,6 +32,11 @@ import { getDatabaseGateway } from "@/services/db-adapter";
 import { ImageViewer } from "@/components/ImageViewer";
 import { MOCK_TITLES, MOCK_THUMBNAIL_CONCEPTS } from "@/data/mock-metadata";
 import type { VideoMetadata, PinnedItem, ThumbnailConcept } from "@/types";
+import {
+  LanguageToggle,
+  getLanguageInstruction,
+} from "@/components/LanguageToggle";
+import type { ContentLanguage } from "@/components/LanguageToggle";
 
 export function MetadataSuite() {
   const {
@@ -81,6 +86,9 @@ export function MetadataSuite() {
     Record<string, string>
   >({});
   const [copiedTitle, setCopiedTitle] = useState(false);
+  const [titleLanguage, setTitleLanguage] =
+    useState<ContentLanguage>("hinglish");
+  const [descLanguage, setDescLanguage] = useState<ContentLanguage>("hinglish");
 
   const ai = getAIGateway();
   const db = getDatabaseGateway();
@@ -141,13 +149,16 @@ export function MetadataSuite() {
     localIsGenerating,
   ]);
 
-  const handleGenerateTitles = async () => {
+  const handleGenerateTitles = async (overrideLang?: ContentLanguage) => {
     if (localIsGenerating) return;
     setLocalIsGenerating(true);
+    const activeTitleLang = overrideLang ?? titleLanguage;
     try {
       const topic =
         currentProject?.selectedTopic?.title || "productivity video";
       const prompt = `You are a YouTube title expert. Generate exactly 10 strong YouTube video titles for a video about: "${topic}"
+
+LANGUAGE: ${getLanguageInstruction(activeTitleLang)}
 
 GUIDELINES:
 - Vary title styles: how-to, list, question, story, opinion, comparison, tutorial, case study
@@ -189,7 +200,10 @@ Return as valid JSON array of strings only. No explanations.`;
     }
   };
 
-  const handleGenerateDescription = async () => {
+  const handleGenerateTitlesWithLang = handleGenerateTitles;
+
+  const handleGenerateDescription = async (overrideLang?: ContentLanguage) => {
+    const activeDescLang = overrideLang ?? descLanguage;
     try {
       const topic = currentProject?.selectedTopic?.title || "productivity";
       const script =
@@ -201,6 +215,8 @@ Return as valid JSON array of strings only. No explanations.`;
         .join("\n");
 
       const prompt = `Write a well-structured YouTube video description for a video about: "${topic}"
+
+LANGUAGE: ${getLanguageInstruction(activeDescLang)}
 
 Script excerpt: ${script}
 
@@ -221,7 +237,6 @@ DESCRIPTION STRUCTURE:
 5. Relevant hashtags (5-8): Mix of broad and niche-specific tags.
 
 GUIDELINES:
-- Match the language/tone to the video topic and creator style
 - Include relevant keywords naturally for SEO
 - Keep it authentic — avoid excessive emojis or hollow hype
 - Total length: 150-300 words
@@ -241,6 +256,8 @@ Return the complete description.`;
       toast.error("Failed to generate description");
     }
   };
+
+  const handleGenerateDescriptionWithLang = handleGenerateDescription;
 
   const handleGenerateThumbnailConcepts = async () => {
     if (localIsGenerating) return;
@@ -433,22 +450,34 @@ Return as valid JSON array with fields: id, title, description, layout, textOver
 
         {/* Titles Tab */}
         <TabsContent value="titles" className="mt-6 space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
             <h3 className="text-lg font-medium font-sans text-foreground">
               Choose a Title
             </h3>
-            <Button
-              onClick={handleGenerateTitles}
-              disabled={localIsGenerating}
-              variant="outline"
-              size="sm"
-              className="border-border"
-            >
-              <RefreshCw
-                className={`mr-2 h-4 w-4 ${localIsGenerating ? "animate-spin" : ""}`}
+            <div className="flex items-center gap-2">
+              <LanguageToggle
+                value={titleLanguage}
+                onChange={(lang) => {
+                  setTitleLanguage(lang);
+                  if (titles.length > 0) {
+                    setTimeout(() => handleGenerateTitlesWithLang(lang), 0);
+                  }
+                }}
+                size="sm"
               />
-              Refresh
-            </Button>
+              <Button
+                onClick={() => handleGenerateTitlesWithLang(titleLanguage)}
+                disabled={localIsGenerating}
+                variant="outline"
+                size="sm"
+                className="border-border"
+              >
+                <RefreshCw
+                  className={`mr-2 h-4 w-4 ${localIsGenerating ? "animate-spin" : ""}`}
+                />
+                Refresh
+              </Button>
+            </div>
           </div>
 
           <RadioGroup
@@ -531,19 +560,34 @@ Return as valid JSON array with fields: id, title, description, layout, textOver
 
         {/* Description Tab */}
         <TabsContent value="description" className="mt-6 space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
             <h3 className="text-lg font-medium font-sans text-foreground">
               Video Description
             </h3>
-            <Button
-              onClick={handleGenerateDescription}
-              variant="outline"
-              size="sm"
-              className="border-border"
-            >
-              <Sparkles className="mr-2 h-4 w-4" />
-              Regenerate
-            </Button>
+            <div className="flex items-center gap-2">
+              <LanguageToggle
+                value={descLanguage}
+                onChange={(lang) => {
+                  setDescLanguage(lang);
+                  if (description) {
+                    setTimeout(
+                      () => handleGenerateDescriptionWithLang(lang),
+                      0,
+                    );
+                  }
+                }}
+                size="sm"
+              />
+              <Button
+                onClick={() => handleGenerateDescriptionWithLang(descLanguage)}
+                variant="outline"
+                size="sm"
+                className="border-border"
+              >
+                <Sparkles className="mr-2 h-4 w-4" />
+                Regenerate
+              </Button>
+            </div>
           </div>
 
           <Textarea

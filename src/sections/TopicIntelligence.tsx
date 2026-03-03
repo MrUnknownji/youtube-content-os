@@ -20,6 +20,11 @@ import { getAIGateway } from "@/services/ai-provider";
 import { getDatabaseGateway } from "@/services/db-adapter";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { TopicSuggestion, PinnedItem } from "@/types";
+import {
+  LanguageToggle,
+  getLanguageInstruction,
+} from "@/components/LanguageToggle";
+import type { ContentLanguage } from "@/components/LanguageToggle";
 
 const MOCK_TOPICS: TopicSuggestion[] = [
   {
@@ -109,6 +114,7 @@ export function TopicIntelligence() {
   const [localIsGenerating, setLocalIsGenerating] = useState(false);
   const [preferences, setPreferences] = useState("");
   const [finalizedTopicId, setFinalizedTopicId] = useState<string | null>(null);
+  const [language, setLanguage] = useState<ContentLanguage>("hinglish");
 
   const ai = getAIGateway();
   const db = getDatabaseGateway();
@@ -128,9 +134,10 @@ export function TopicIntelligence() {
     }
   }, [currentStage, topics.length, localIsGenerating]);
 
-  const handleGenerateTopics = async () => {
+  const handleGenerateTopics = async (overrideLang?: ContentLanguage) => {
     if (localIsGenerating) return;
     setLocalIsGenerating(true);
+    const activeLang = overrideLang ?? language;
 
     try {
       const dataContext = currentProject?.dataSource
@@ -143,13 +150,14 @@ You are an expert YouTube content strategist. Generate exactly 10 compelling VID
 
 User preferences: ${preferences || "None specified"}
 
+LANGUAGE: ${getLanguageInstruction(activeLang)}
+
 GUIDELINES:
 - Vary the content styles: tutorials, opinion pieces, case studies, debunks, comparisons, how-tos, listicles, personal experience
 - Titles should be clear, specific, and genuinely valuable — not overly sensational
 - A good title accurately represents the content while sparking genuine curiosity
 - Use concrete numbers or specifics when they add credibility (not arbitrary ones)
 - Avoid excessive ALL CAPS, excessive punctuation, or hollow superlatives
-- If preferences suggest a specific language or style, match it; otherwise default to clear English
 - Think about what would serve the audience, not just maximize clicks
 
 Return as valid JSON array with these exact fields:
@@ -245,9 +253,16 @@ Return as valid JSON array with these exact fields:
     return "bg-muted text-muted-foreground";
   };
 
+  const handleLanguageChange = (lang: ContentLanguage) => {
+    setLanguage(lang);
+    if (topics.length > 0) {
+      setTimeout(() => handleGenerateTopics(lang), 0);
+    }
+  };
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
           <h2 className="text-2xl font-semibold font-sans text-foreground">
             Topic Intelligence
@@ -256,9 +271,10 @@ Return as valid JSON array with these exact fields:
             AI-powered topic suggestions based on your data
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <LanguageToggle value={language} onChange={handleLanguageChange} />
           <Button
-            onClick={handleGenerateTopics}
+            onClick={() => handleGenerateTopics()}
             disabled={localIsGenerating}
             variant="outline"
             className="border-border"
@@ -288,7 +304,7 @@ Return as valid JSON array with these exact fields:
             </div>
             <div className="flex items-end">
               <Button
-                onClick={handleGenerateTopics}
+                onClick={() => handleGenerateTopics()}
                 disabled={localIsGenerating}
                 className="bg-primary hover:bg-primary/90 text-primary-foreground"
               >
@@ -350,7 +366,7 @@ Return as valid JSON array with these exact fields:
                   }}
                 />
                 <Button
-                  onClick={handleGenerateTopics}
+                  onClick={() => handleGenerateTopics()}
                   disabled={localIsGenerating}
                   className="bg-primary hover:bg-primary/90 text-primary-foreground"
                 >
