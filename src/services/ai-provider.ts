@@ -206,7 +206,7 @@ class AIGateway {
               success: true,
               data: result.data,
               fallbackUsed: false,
-              message: 'Generated with Gemini 3 Flash'
+              message: `Generated with ${model}`
             };
           }
           if (!result.success) {

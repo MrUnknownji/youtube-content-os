@@ -99,58 +99,39 @@ export function ScriptStudio() {
     try {
       const topic =
         currentProject?.selectedTopic?.title || "productivity and focus";
-      const prompt = `You are an expert YouTube scriptwriter specializing in viral, engaging content. Write exactly 3 complete YouTube video scripts about: "${topic}"
+      const prompt = `You are an expert YouTube scriptwriter. Write exactly 3 complete YouTube video scripts about: "${topic}"
 
 Format: ${format} video
 
-CRITICAL LANGUAGE REQUIREMENT:
-- Write the entire script in HINGLISH (Hindi + English mix, written in English/Roman script)
-- Example: "Aaj main aapko bataunga ek amazing trick jo will change your life"
-- Use conversational Indian YouTube creator tone
-- Mix Hindi and English naturally like Indian creators do
-
-ENGAGEMENT PSYCHOLOGY PRINCIPLES TO APPLY:
-1. HOOK (0-3 seconds): Start with pattern interrupt - shocking statement, bold claim, or curiosity gap
-2. PROBLEM AGITATION: Make viewer feel the pain point intensely
-3. SOLUTION TEASER: Hint at the solution but don't reveal fully yet
-4. VALUE DELIVERY: Provide actionable, specific steps they can implement
-5. PROOF/SOCIAL VALIDATION: Use numbers, results, or relatable examples
-6. CALL-TO-ACTION: Clear, specific action with benefit statement
+SCRIPT STRUCTURE (3-4 minutes):
+- HOOK (0-15s): An opening that immediately establishes relevance to the viewer. Can be a bold claim, relatable scenario, unexpected insight, or direct problem statement
+- SETUP (15-45s): Context setting — what the video covers and why it matters
+- MAIN CONTENT (45s-2:30): The core value. Step-by-step, story-driven, or analytical — whatever best serves the topic
+- TAKEAWAY & CLOSE (2:30-3:30): Summarize key points, clear call to action
 
 ${
   format === "facecam"
     ? `FACECAM FORMAT:
-- Include host directions in [brackets] like [CAMERA ON - ENERGETIC] or [LEAN IN - CONSPIRATORIAL]
-- Add emotional cues and camera angles
-- Write dialogue meant to be spoken directly to camera
-- Include gesture instructions like [POINTS TO SCREEN] or [HOLDS UP PROP]`
+- Include host directions in [brackets] like [look at camera] or [show on screen]
+- Write dialogue to be spoken directly to camera, conversational and natural
+- Include gesture cues where helpful like [hold up phone] or [point to list]`
     : `FACELESS FORMAT:
 - Include [TIMESTAMP] markers like [0:00-0:15]
-- Add B-roll descriptions, stock footage suggestions
+- Add B-roll descriptions and stock footage suggestions
 - Include TEXT OVERLAY instructions for key points
 - Add NARRATOR (V.O.) markers for voiceover
 - Specify transitions: [CUT TO], [ZOOM], [FADE]`
 }
 
-SCRIPT STRUCTURE (3-4 minutes):
-- INTRO HOOK (0-15s): Must stop the scroll. Use one of these patterns:
-  * Shocking statistic: "95% log ye galti karte hain..."
-  * Bold promise: "Aaj ke baad aapki life change ho jayegi..."
-  * Curiosity gap: "Maine jo discover kiya, woh shocking hai..."
-  * Contrarian take: "Jo aap sunte ho, woh galat hai..."
-- PROBLEM SETTING (15-45s): Relatable story, pain points
-- SOLUTION BUILD-UP (45s-2min): Step by step with examples
-- PROOF/RESULTS (2min-3min): Show it works
-- POWERFUL CTA (3min-3:30s): Subscribe with reason to return
-
-IMPORTANT: 
-- DO NOT include meta-commentary about YouTube growth tips
-- Write the ACTUAL SCRIPT content only
-- Each script should feel different in approach/tone
+IMPORTANT:
+- Write each script in the language and tone appropriate for the topic and apparent audience
+- Make each of the 3 variants meaningfully different in approach or angle
+- Include actual, usable content — not placeholder text
+- Prioritize viewer value over engagement tricks
 
 Return as valid JSON array with exactly these fields:
 - id: "script-1", "script-2", "script-3"
-- content: the full script text in Hinglish
+- content: the full script text
 - wordCount: approximate word count (number)
 - estimatedDuration: time like "3:30"`;
 

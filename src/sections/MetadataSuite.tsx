@@ -147,32 +147,16 @@ export function MetadataSuite() {
     try {
       const topic =
         currentProject?.selectedTopic?.title || "productivity video";
-      const prompt = `You are a YouTube title expert specializing in viral, high-CTR titles. Generate exactly 10 engaging YouTube video titles for a video about: "${topic}"
+      const prompt = `You are a YouTube title expert. Generate exactly 10 strong YouTube video titles for a video about: "${topic}"
 
-CRITICAL LANGUAGE REQUIREMENT:
-- Write ALL titles in HINGLISH (Hindi + English mix, written in English/Roman script)
-- Example: "Maine 30 Din Ye Try Kiya - Results Dekho!"
-
-VIRAL TITLE FORMULAS (use variety):
-1. CURIOSITY GAP: "Maine ye discover kiya aur..."
-2. NUMBERS + SPECIFICITY: "5 Galtiyan jo 90% log karte hain"
-3. TRANSFORMATION: "Zero se Hero: 30 din mein..."
-4. CONTROVERSY: "Jo aap sunte ho, woh galat hai..."
-5. SECRETS: "YouTube nahi batata ye secret..."
-6. PERSONAL STORY: "Maine try kiya aur results..."
-7. CHALLENGE: "30 Din Challenge jo..."
-8. BEFORE/AFTER: "Student se Topper: Ye ek cheez..."
-9. WARNING: "Ye galti mat karna..."
-10. HOW-TO TWIST: "Kaise kare X (jo 99% nahi jaante)"
-
-PSYCHOLOGICAL TRIGGERS TO USE:
-- FOMO (fear of missing out)
-- Loss aversion (what they'll lose)
-- Social proof (numbers, percentages)
-- Urgency (time-sensitive)
-- Exclusivity (insider knowledge)
-
-Make them catchy, clickable, and curiosity-inducing. Use emojis strategically (1-2 per title max).
+GUIDELINES:
+- Vary title styles: how-to, list, question, story, opinion, comparison, tutorial, case study
+- Titles should be specific and honest about what the viewer will get
+- Avoid hollow superlatives like "AMAZING", "INCREDIBLE", "MIND-BLOWING"
+- Use numbers only when they're meaningful and accurate
+- Emojis are optional — use sparingly and only if they add clarity
+- Match the language/style to the video's topic and apparent audience
+- A great title makes a clear promise and delivers curiosity without being deceptive
 
 Return as valid JSON array of strings only. No explanations.`;
 
@@ -216,52 +200,31 @@ Return as valid JSON array of strings only. No explanations.`;
         .map((s) => `${s.timestampStart} - ${s.scriptSegment.slice(0, 50)}...`)
         .join("\n");
 
-      const prompt = `Write an SEO-optimized YouTube video description that drives engagement and discovery.
-
-Video Topic: "${topic}"
+      const prompt = `Write a well-structured YouTube video description for a video about: "${topic}"
 
 Script excerpt: ${script}
 
 Timestamps to include:
 ${timestamps}
 
-DESCRIPTION STRUCTURE FOR MAXIMUM ENGAGEMENT:
+DESCRIPTION STRUCTURE:
 
-1. HOOK LINE (First 2 lines visible in search):
-- Create curiosity or value promise
-- Include main keyword naturally
-- Written in Hinglish
+1. Opening hook (2-3 sentences): Clearly state what the video is about and what the viewer will gain. Make it compelling but honest.
 
-2. EXPANDED SUMMARY (150-200 words):
-- What viewer will learn/gain
-- Why they should watch till the end
-- Key points covered
-- Written in Hinglish with personality
+2. Expanded summary (100-150 words): Cover the key points, who this is for, and why it matters. Write naturally and conversationally.
 
-3. TIMESTAMPS SECTION:
-- Format: 0:00 - Topic
-- Include 5-8 key moments
+3. Timestamps: Use the provided timestamps formatted as:
+0:00 - Topic
 
-4. CALL-TO-ACTION BLOCK:
-- Subscribe reminder with benefit
-- Like/Comment prompt
-- Specific question to encourage comments
+4. Call to action: Brief, genuine subscribe/like/comment request with a specific question to encourage engagement.
 
-5. RESOURCES/LINKS SECTION:
-- Mention any tools/resources
-- Social media links placeholder
+5. Relevant hashtags (5-8): Mix of broad and niche-specific tags.
 
-6. HASHTAGS:
-- 5-8 relevant hashtags
-- Include #shorts if applicable
-
-CRITICAL REQUIREMENTS:
-- Write primarily in HINGLISH (Hindi + English mix)
-- Include relevant keywords naturally
-- Add 3-5 emojis throughout (not excessive)
-- Make it feel personal and conversational
-- Total length: 200-400 words
-- Include a question to boost comments
+GUIDELINES:
+- Match the language/tone to the video topic and creator style
+- Include relevant keywords naturally for SEO
+- Keep it authentic — avoid excessive emojis or hollow hype
+- Total length: 150-300 words
 
 Return the complete description.`;
 

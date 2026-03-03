@@ -206,7 +206,7 @@ export function SettingsDialog() {
                 </p>
                 <p className="text-sm text-muted-foreground">
                   {settings.useAI
-                    ? "Using Gemini 3 Flash for generation"
+                    ? `Using ${settings.geminiModel === "gemini-3.1-pro-preview" ? "Gemini 3.1 Pro" : "Gemini 3 Flash"} for generation`
                     : "Using pre-built templates"}
                 </p>
               </div>
@@ -329,8 +329,8 @@ export function SettingsDialog() {
                     <SelectItem value="gemini-3-flash-preview">
                       Gemini 3 Flash (Fast)
                     </SelectItem>
-                    <SelectItem value="gemini-3-pro-preview">
-                      Gemini 3 Pro (Capable)
+                    <SelectItem value="gemini-3.1-pro-preview">
+                      Gemini 3.1 Pro (Capable)
                     </SelectItem>
                   </SelectContent>
                 </Select>

@@ -121,9 +121,65 @@ export function DirectImageGenerator() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(true);
 
+  const [isEnhancing, setIsEnhancing] = useState(false);
   const { generateImage, isAnyGenerating } = useImageGenerationQueue();
   const ai = getAIGateway();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const handleEnhancePrompt = async () => {
+    if (!prompt.trim()) {
+      toast.error("Enter a prompt to enhance");
+      return;
+    }
+    if (!ai.isAvailable()) {
+      toast.error("AI mode is not enabled. Please enable it in Settings.");
+      return;
+    }
+    setIsEnhancing(true);
+    try {
+      const isProd = import.meta.env.PROD;
+      const apiUrl =
+        import.meta.env.VITE_API_URL ||
+        (isProd ? "/api" : "http://localhost:3001/api");
+      const settings = getAISettings();
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (settings.geminiApiKey)
+        headers["x-gemini-api-key"] = settings.geminiApiKey;
+      if (settings.geminiApiType)
+        headers["x-gemini-api-type"] = settings.geminiApiType;
+
+      const response = await fetch(`${apiUrl}/ai/generate`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          provider: "gemini",
+          model: "gemini-2.0-flash-001",
+          type: "text",
+          prompt: `You are an expert image prompt engineer. Enhance the following basic image prompt into a detailed, vivid, high-quality generation prompt. Keep the core idea but add: composition details, lighting, style, mood, color palette, and technical quality descriptors. Output only the enhanced prompt, nothing else.\n\nOriginal prompt: ${prompt.trim()}`,
+          maxTokens: 300,
+          temperature: 0.7,
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && result.data) {
+          setPrompt(result.data.trim());
+          toast.success("Prompt enhanced with Gemini 2.0 Flash");
+        } else {
+          toast.error("Enhancement failed");
+        }
+      } else {
+        toast.error("Enhancement request failed");
+      }
+    } catch {
+      toast.error("Failed to enhance prompt");
+    } finally {
+      setIsEnhancing(false);
+    }
+  };
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
@@ -362,28 +418,49 @@ export function DirectImageGenerator() {
 
             <div className="hidden sm:block flex-1" />
 
-            <Button
-              onClick={handleGenerate}
-              disabled={
-                isAnyGenerating ||
-                !isAIEnabled ||
-                !isImageGenEnabled ||
-                !prompt.trim()
-              }
-              className="w-full sm:w-auto bg-primary text-primary-foreground shadow-md transition-all hover:shadow-lg hover:bg-primary/90 min-w-[140px]"
-            >
-              {isAnyGenerating ? (
-                <>
-                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                  Generating...
-                </>
-              ) : (
-                <>
-                  <Wand2 className="mr-2 h-4 w-4" />
-                  Generate
-                </>
-              )}
-            </Button>
+            <div className="flex gap-2 w-full sm:w-auto">
+              <Button
+                onClick={handleEnhancePrompt}
+                disabled={isEnhancing || !isAIEnabled || !prompt.trim()}
+                variant="outline"
+                className="w-full sm:w-auto border-border"
+                title="Enhance prompt with Gemini 2.0 Flash"
+              >
+                {isEnhancing ? (
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                    Enhancing...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    Enhance
+                  </>
+                )}
+              </Button>
+              <Button
+                onClick={handleGenerate}
+                disabled={
+                  isAnyGenerating ||
+                  !isAIEnabled ||
+                  !isImageGenEnabled ||
+                  !prompt.trim()
+                }
+                className="w-full sm:w-auto bg-primary text-primary-foreground shadow-md transition-all hover:shadow-lg hover:bg-primary/90 min-w-[140px]"
+              >
+                {isAnyGenerating ? (
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Wand2 className="mr-2 h-4 w-4" />
+                    Generate
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>

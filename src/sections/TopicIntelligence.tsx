@@ -139,34 +139,24 @@ export function TopicIntelligence() {
 
       const prompt = `${dataContext}
 
-You are a YouTube viral content strategist. Generate exactly 10 VIDEO TITLE suggestions that are designed to maximize clicks and engagement.
-
-VIRAL TITLE FORMULAS TO USE:
-1. CURIOSITY GAP: "Maine ye discover kiya aur shock ho gaya..."
-2. NUMBERS + SPECIFICITY: "5 Galtiyan jo 90% log karte hain"
-3. TRANSFORMATION: "Zero se Hero: 30 din mein kaise..."
-4. CONTROVERSY: "Jo aap sunte ho, woh galat hai..."
-5. SECRETS/INSIDER: "YouTube nahi batata ye secret..."
-6. PERSONAL STORY: "Maine try kiya aur results..."
-7. CHALLENGE: "30 Din Challenge jo change karegi..."
-8. BEFORE/AFTER: "Student se Topper: Ye ek cheez..."
-9. WARNING: "Ye galti mat karna, maine ki thi..."
-10. HOW-TO WITH TWIST: "Kaise kare X (jo 99% log nahi jaante)"
-
-PSYCHOLOGICAL TRIGGERS:
-- FOMO (fear of missing out)
-- Loss aversion (what they'll lose)
-- Social proof (numbers, percentages)
-- Urgency (time-sensitive)
-- Exclusivity (insider knowledge)
+You are an expert YouTube content strategist. Generate exactly 10 compelling VIDEO TOPIC ideas tailored to the creator's niche and audience.
 
 User preferences: ${preferences || "None specified"}
 
+GUIDELINES:
+- Vary the content styles: tutorials, opinion pieces, case studies, debunks, comparisons, how-tos, listicles, personal experience
+- Titles should be clear, specific, and genuinely valuable — not overly sensational
+- A good title accurately represents the content while sparking genuine curiosity
+- Use concrete numbers or specifics when they add credibility (not arbitrary ones)
+- Avoid excessive ALL CAPS, excessive punctuation, or hollow superlatives
+- If preferences suggest a specific language or style, match it; otherwise default to clear English
+- Think about what would serve the audience, not just maximize clicks
+
 Return as valid JSON array with these exact fields:
 - id: unique identifier like "topic-1"
-- title: the video title in Hinglish (mix of Hindi and English in English script)
-- rationale: explain which psychological triggers this uses and why it works (in English)
-- predictedScore: number 70-95 indicating viral potential`;
+- title: the video title (clear, specific, compelling)
+- rationale: why this topic would resonate with the target audience and what value it delivers
+- predictedScore: number 65-92 indicating estimated audience interest based on specificity and relevance`;
 
       const response = await generateText({
         prompt,

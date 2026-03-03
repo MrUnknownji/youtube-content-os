@@ -383,9 +383,9 @@ export function Navigation({ currentStage, onStageChange }: NavigationProps) {
               Content OS
             </span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             {/* Service indicators */}
-            <div className="flex gap-1.5 mr-2">
+            <div className="flex gap-1.5 mr-1">
               <div
                 className={`w-2 h-2 rounded-full shadow-sm ${STATUS_COLORS[serviceStatus.mongodb]}`}
               />
@@ -396,6 +396,25 @@ export function Navigation({ currentStage, onStageChange }: NavigationProps) {
                 className={`w-2 h-2 rounded-full shadow-sm ${STATUS_COLORS[serviceStatus.ai]}`}
               />
             </div>
+
+            {/* Pinned Items Button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 relative"
+              onClick={() => setShowPinnedSidebar((prev) => !prev)}
+              title="Pinned Items"
+            >
+              <Bookmark className="h-5 w-5" />
+              {pinnedCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center">
+                  {pinnedCount > 9 ? "9+" : pinnedCount}
+                </span>
+              )}
+            </Button>
+
+            {/* Settings */}
+            <SettingsDialog />
 
             <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
               <SheetTrigger asChild>
@@ -420,12 +439,11 @@ export function Navigation({ currentStage, onStageChange }: NavigationProps) {
                     <div className="flex items-center justify-between">
                       <Button
                         onClick={createNewProject}
-                        className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground mr-2 font-medium shadow-sm transition-all"
+                        className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium shadow-sm transition-all"
                       >
                         <Plus className="mr-2 h-4 w-4" />
                         New Project
                       </Button>
-                      <ThemeToggle />
                     </div>
 
                     <nav className="space-y-1">
@@ -517,6 +535,11 @@ export function Navigation({ currentStage, onStageChange }: NavigationProps) {
                         })}
                       </div>
                     </nav>
+                  </div>
+
+                  <div className="mt-4 pt-4 border-t border-border/50 flex items-center justify-between px-1">
+                    <AIModeToggle />
+                    <ThemeToggle />
                   </div>
                 </ScrollArea>
               </SheetContent>

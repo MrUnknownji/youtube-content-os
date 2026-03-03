@@ -187,53 +187,53 @@ export function ShortsGenerator() {
       const script = currentProject?.selectedScript?.content || "";
       const topic = currentProject?.selectedTopic?.title || "video content";
 
-      const prompt = `You are a YouTube Shorts viral content expert. Analyze this script and extract EXACTLY 3 potential shorts (10-30 seconds each).
+      const prompt = `You are a YouTube Shorts expert. Analyze this script and extract EXACTLY 3 strong short-form content moments (15-45 seconds each).
 
 SCRIPT:
 ${script.slice(0, 2000)}
 
 TOPIC: ${topic}
 
-CRITICAL REQUIREMENTS FOR SHORTS:
-1. Each short MUST have a hook that creates immediate curiosity in the FIRST 2 SECONDS
-2. The hook should create: curiosity gap, shock, emotion, controversy, OR value promise
-3. Each short must be SELF-CONTAINED - a viewer shouldn't need to see the full video
-4. The ending must have a strong payoff or twist
+WHAT MAKES A GREAT SHORT:
+1. Self-contained — the viewer gets full value without seeing the full video
+2. Strong opening — first 2-3 seconds must hook immediately
+3. Clear payoff — ends with a satisfying insight, tip, or moment
+4. Appropriate length — cut aggressively, keep only what's essential
 
-SHORTS CONTENT TYPES TO IDENTIFY:
-- HOOK: Shocking opening statement or question that grabs attention
-- TWIST: Unexpected revelation or counterintuitive insight  
-- REVEAL: Secret tip, hidden feature, or insider knowledge
-- EMOTION: Powerful emotional moment or story
-- VALUE_BOMB: Quick actionable tip with immediate benefit
-- CONTROVERSY: Bold statement that challenges common beliefs
+CONTENT TYPES TO IDENTIFY:
+- hook: A striking opening statement or question
+- twist: Unexpected revelation or counterintuitive insight
+- reveal: A specific technique, tip, or lesser-known fact
+- emotion: A powerful moment or story beat
+- value_bomb: A quick, immediately actionable insight
+- controversy: A bold, defensible claim that challenges assumptions
 
 For each short, return as JSON:
 {
   "id": "short-1/2/3",
   "sourceScriptId": "script id",
-  "title": "Engaging short title in Hinglish",
-  "duration": 15-30,
+  "title": "Descriptive short title",
+  "duration": 15-45,
   "timestampStart": "approximate start in script",
-  "timestampEnd": "approximate end in script", 
-  "hookText": "The exact opening line - THIS IS CRITICAL. Must be 5-8 words maximum, create curiosity, and stop the scroll",
-  "hookReason": "Why this hook works psychologically",
-  "fullContent": "Complete short script in Hinglish (Hindi + English mix)",
+  "timestampEnd": "approximate end in script",
+  "hookText": "The exact opening line — 8-12 words max, creates immediate curiosity or relevance",
+  "hookReason": "Why this opening works",
+  "fullContent": "Complete, polished short script",
   "engagementScore": 60-95,
   "viralPotential": "low/medium/high/viral",
   "contentType": "hook/twist/reveal/emotion/value_bomb/controversy",
-  "targetAudience": "Who will watch this",
-  "suggestedThumbnail": "Description of thumbnail with text overlay - BE SPECIFIC about colors, expressions, and text",
-  "suggestedTitle": ["3 Hinglish title options with emojis"],
+  "targetAudience": "Who will find this valuable",
+  "suggestedThumbnail": "Specific thumbnail description with text overlay, composition, and key visual element",
+  "suggestedTitle": ["3 title options that accurately represent the content"],
   "hashtags": ["5-8 relevant hashtags including #shorts"],
-  "bestPostingTime": "Best time to post in IST",
+  "bestPostingTime": "Best time to post",
   "crossPlatformAdaptation": {
-    "instagram": "Specific adaptation tips",
-    "tiktok": "Specific adaptation tips"
+    "instagram": "Specific adaptation tips for Instagram Reels",
+    "tiktok": "Specific adaptation tips for TikTok"
   }
 }
 
-Return as valid JSON array of exactly 3 shorts. Make them genuinely viral-worthy.`;
+Return as valid JSON array of exactly 3 shorts.`;
 
       const response = await generateText({
         prompt,
