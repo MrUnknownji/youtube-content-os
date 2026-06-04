@@ -115,11 +115,12 @@ export function SettingsDialog() {
   const [showCloudinarySecret, setShowCloudinarySecret] = useState(false);
   const { createNewProject, setPinnedItems } = useProjectStore();
 
-  useEffect(() => {
-    if (open) {
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (nextOpen) {
       setSettings(getAISettings());
     }
-  }, [open]);
+    setOpen(nextOpen);
+  };
 
   const handleSave = () => {
     saveAISettings(settings);
@@ -165,7 +166,7 @@ export function SettingsDialog() {
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button
           variant="ghost"

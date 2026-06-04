@@ -107,7 +107,7 @@ class StorageGateway {
               mimeType: file.type
             }
           });
-        } catch (e) {
+        } catch {
           // localStorage quota exceeded
           reject(new Error('Storage quota exceeded. Please clear some images or configure Cloudinary.'));
         }

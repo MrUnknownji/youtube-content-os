@@ -1,21 +1,69 @@
 // YouTube Content OS - Main Application
-import { useState, useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { Toaster, toast } from "sonner";
 import { getAIGateway } from "@/services/ai-provider";
 import { getDatabaseGateway } from "@/services/db-adapter";
 import { getStorageGateway } from "@/services/storage-adapter";
 import { Navigation } from "@/sections/Navigation";
-import { DataIngestion } from "@/sections/DataIngestion";
-import { TopicIntelligence } from "@/sections/TopicIntelligence";
-import { ScriptStudio } from "@/sections/ScriptStudio";
-import { StoryboardEngine } from "@/sections/StoryboardEngine";
-import { MetadataSuite } from "@/sections/MetadataSuite";
-import { ShortsGenerator } from "@/sections/ShortsGenerator";
-import { DirectImageGenerator } from "@/sections/DirectImageGenerator";
-import { CreatorProfileSetup } from "@/sections/CreatorProfile";
-import { ProjectComplete } from "@/sections/ProjectComplete";
 import { useProjectStore } from "@/state/projectStore";
 import type { WorkflowStage } from "@/types";
+
+const DataIngestion = lazy(() =>
+  import("@/sections/DataIngestion").then((module) => ({
+    default: module.DataIngestion,
+  })),
+);
+const TopicIntelligence = lazy(() =>
+  import("@/sections/TopicIntelligence").then((module) => ({
+    default: module.TopicIntelligence,
+  })),
+);
+const ScriptStudio = lazy(() =>
+  import("@/sections/ScriptStudio").then((module) => ({
+    default: module.ScriptStudio,
+  })),
+);
+const StoryboardEngine = lazy(() =>
+  import("@/sections/StoryboardEngine").then((module) => ({
+    default: module.StoryboardEngine,
+  })),
+);
+const MetadataSuite = lazy(() =>
+  import("@/sections/MetadataSuite").then((module) => ({
+    default: module.MetadataSuite,
+  })),
+);
+const ShortsGenerator = lazy(() =>
+  import("@/sections/ShortsGenerator").then((module) => ({
+    default: module.ShortsGenerator,
+  })),
+);
+const DirectImageGenerator = lazy(() =>
+  import("@/sections/DirectImageGenerator").then((module) => ({
+    default: module.DirectImageGenerator,
+  })),
+);
+const CreatorProfileSetup = lazy(() =>
+  import("@/sections/CreatorProfile").then((module) => ({
+    default: module.CreatorProfileSetup,
+  })),
+);
+const ProjectComplete = lazy(() =>
+  import("@/sections/ProjectComplete").then((module) => ({
+    default: module.ProjectComplete,
+  })),
+);
+
+function StageFallback() {
+  return (
+    <div className="grid min-h-[45vh] place-items-center rounded-2xl border border-dashed border-border/70 bg-card/40 p-6">
+      <div className="flex items-center gap-3 text-muted-foreground">
+        <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        <span className="text-sm font-medium">Loading workspace…</span>
+      </div>
+    </div>
+  );
+}
 
 function App() {
   const {
@@ -25,8 +73,6 @@ function App() {
     createNewProject,
     setServiceStatus,
   } = useProjectStore();
-  const [isLoading, setIsLoading] = useState(true);
-
   // Check health on mount
   useEffect(() => {
     const checkHealth = async () => {
@@ -44,23 +90,17 @@ function App() {
       });
     };
     checkHealth();
-  }, []);
+  }, [setServiceStatus]);
 
   useEffect(() => {
     if (!currentProject) {
-      createNewProject();
+      queueMicrotask(createNewProject);
     }
-    setIsLoading(false);
-  }, []);
+  }, [createNewProject, currentProject]);
 
   const handleStageChange = (stage: WorkflowStage) => {
     if (stage === "imagegen") {
       setCurrentStage(stage);
-      return;
-    }
-
-    if (!currentProject) {
-      toast.error("No active project");
       return;
     }
 
@@ -84,11 +124,11 @@ function App() {
     const prerequisites: Record<WorkflowStage, () => boolean> = {
       ingestion: () => true,
       topics: () => true,
-      script: () => currentProject.selectedTopic !== null,
-      storyboard: () => currentProject.selectedScript !== null,
-      metadata: () => currentProject.selectedStoryboard !== null,
-      shorts: () => currentProject.selectedMetadata !== null,
-      complete: () => currentProject.selectedMetadata !== null,
+      script: () => currentProject?.selectedTopic != null,
+      storyboard: () => currentProject?.selectedScript != null,
+      metadata: () => currentProject?.selectedStoryboard != null,
+      shorts: () => currentProject?.selectedMetadata != null,
+      complete: () => currentProject?.selectedMetadata != null,
       imagegen: () => true,
       profile: () => true,
     };
@@ -99,6 +139,14 @@ function App() {
       toast.error("Complete current stage first");
     }
   };
+
+  if (!currentProject) {
+    return (
+      <div className="min-h-[100dvh] bg-background p-4">
+        <StageFallback />
+      </div>
+    );
+  }
 
   const renderStage = () => {
     switch (currentStage) {
@@ -125,23 +173,8 @@ function App() {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center animate-pulse">
-            <span className="text-primary-foreground font-bold">C</span>
-          </div>
-          <span className="text-foreground font-sans">
-            Loading Content OS...
-          </span>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="min-h-[100dvh] bg-background flex overflow-x-hidden">
       <Toaster
         position="top-right"
         richColors
@@ -160,16 +193,16 @@ function App() {
       />
 
       {/* Main Content */}
-      <main className="flex-1 min-h-[100dvh] overflow-y-auto overflow-x-hidden relative">
+      <main className="flex-1 min-w-0 min-h-[100dvh] overflow-y-auto overflow-x-hidden relative">
         {/* Top ambient gradient for a premium feel */}
         <div className="absolute top-0 inset-x-0 h-[500px] bg-gradient-to-b from-primary/10 via-background/50 to-transparent pointer-events-none -z-10" />
 
         {/* Mobile header spacer */}
         <div className="lg:hidden h-[73px]" />
 
-        <div className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8 xl:p-10 transition-all duration-300">
+        <div className="w-full max-w-6xl mx-auto px-3 py-4 sm:p-6 lg:p-8 xl:p-10 transition-all duration-300">
           {/* Stage Header */}
-          <div className="mb-8">
+          <div className="mb-6 sm:mb-8">
             <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
               <span>{currentStage === "imagegen" ? "Tool" : "Stage"}</span>
               <span>
@@ -188,7 +221,7 @@ function App() {
               <span>of</span>
               <span>{currentStage === "imagegen" ? "•" : "7"}</span>
             </div>
-            <h1 className="text-3xl font-bold font-sans text-foreground capitalize">
+            <h1 className="text-2xl sm:text-3xl font-bold font-sans text-foreground capitalize leading-tight">
               {currentStage === "ingestion" && "Data Ingestion"}
               {currentStage === "topics" && "Topic Intelligence"}
               {currentStage === "script" && "Script Studio"}
@@ -202,7 +235,7 @@ function App() {
           </div>
 
           {/* Stage Content */}
-          {renderStage()}
+          <Suspense fallback={<StageFallback />}>{renderStage()}</Suspense>
         </div>
       </main>
     </div>

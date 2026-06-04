@@ -173,11 +173,11 @@ Return as valid JSON array with exactly these fields:
             updateProject({ scriptVariants: validatedScripts });
             toast.success("Scripts generated successfully");
           }
-        } catch (e) {
+        } catch {
           setScripts(MOCK_SCRIPTS[format]);
         }
       }
-    } catch (error) {
+    } catch {
       toast.error("Generation failed");
     } finally {
       setLocalIsGenerating(false);

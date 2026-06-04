@@ -38,6 +38,11 @@ import { getStorageGateway } from "@/services/storage-adapter";
 import { getAIGateway } from "@/services/ai-provider";
 import type { DashboardData, DataSource } from "@/types";
 
+type ImageAnalysisResult = {
+  name?: string;
+  analysis?: string;
+};
+
 export function DataIngestion() {
   const { currentProject, setCurrentStage, updateProject } = useProjectStore();
   const { generate: generateText } = useTextGeneration();
@@ -61,8 +66,8 @@ export function DataIngestion() {
         currentProject.dataSource.type === "images" &&
         Array.isArray(currentProject.dataSource.rawData)
       ) {
-        const firstItem = currentProject.dataSource.rawData[0] as any;
-        if (firstItem?.analysis) {
+        const firstItem = currentProject.dataSource.rawData[0] as ImageAnalysisResult;
+        if (firstItem.analysis) {
           setAnalysisResult(firstItem.analysis);
         }
       } else if (currentProject.dataSource.type === "csv") {
@@ -75,7 +80,7 @@ export function DataIngestion() {
         setManualData(currentProject.dataSource.rawData as DashboardData);
       }
     }
-  }, []);
+  }, [currentProject?.dataSource]);
 
   // Image dropzone
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
@@ -126,7 +131,7 @@ export function DataIngestion() {
 
       setUploadedImages(processedResults);
 
-      let analysisData: any[] = processedResults.map((u) => ({
+      let analysisData: ImageAnalysisResult[] = processedResults.map((u) => ({
         name: u.file.name,
       }));
 
@@ -152,7 +157,7 @@ export function DataIngestion() {
         processedAt: new Date(),
       };
       updateProject({ dataSource });
-    } catch (error) {
+    } catch {
       toast.error("Processing failed");
     } finally {
       setLocalIsGenerating(false);

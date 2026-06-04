@@ -11,6 +11,12 @@ import type {
   ServiceStatus 
 } from '@/types';
 
+const omitGeneratedImageUrl = (scene: StoryboardScene) => {
+  const persistedScene = { ...scene };
+  delete persistedScene.generatedImageUrl;
+  return persistedScene;
+};
+
 interface ProjectState {
   currentProject: Project | null;
   pinnedItems: PinnedItem[];
@@ -186,10 +192,7 @@ export const useProjectStore = create<ProjectState>()(
             ...state.currentProject,
             selectedStoryboard: state.currentProject.selectedStoryboard ? {
               ...state.currentProject.selectedStoryboard,
-              scenes: state.currentProject.selectedStoryboard.scenes.map(scene => {
-                const { generatedImageUrl, ...rest } = scene;
-                return rest;
-              })
+              scenes: state.currentProject.selectedStoryboard.scenes.map(omitGeneratedImageUrl)
             } : null
           }
         };

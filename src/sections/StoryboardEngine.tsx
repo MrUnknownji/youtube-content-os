@@ -333,12 +333,12 @@ Return as valid JSON array. Total duration should match script length (approxima
             });
             toast.success("Storyboard generated successfully");
           }
-        } catch (e) {
-          console.error("Parse failed", e);
+        } catch (error) {
+          console.error("Parse failed", error);
           setScenes(MOCK_SCENES);
         }
       }
-    } catch (error) {
+    } catch {
       toast.error("Generation failed");
     } finally {
       setLocalIsGenerating(false);
