@@ -189,11 +189,11 @@ Return as valid JSON array of strings only. No explanations.`;
           setTitles(validatedTitles);
           updateProject({ titleSuggestions: validatedTitles });
           toast.success("Titles generated");
-        } catch (e) {
+        } catch {
           setTitles(MOCK_TITLES);
         }
       }
-    } catch (error) {
+    } catch {
       setTitles(MOCK_TITLES);
     } finally {
       setLocalIsGenerating(false);
@@ -252,7 +252,7 @@ Return the complete description.`;
         }
         toast.success("Description generated");
       }
-    } catch (error) {
+    } catch {
       toast.error("Failed to generate description");
     }
   };
@@ -297,7 +297,7 @@ Return as valid JSON array with fields: id, title, description, layout, textOver
           setThumbnailConcepts(MOCK_THUMBNAIL_CONCEPTS);
         }
       }
-    } catch (error) {
+    } catch {
       setThumbnailConcepts(MOCK_THUMBNAIL_CONCEPTS);
     } finally {
       setLocalIsGenerating(false);

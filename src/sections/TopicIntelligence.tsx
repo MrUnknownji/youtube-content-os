@@ -190,11 +190,11 @@ Return as valid JSON array with these exact fields:
             updateProject({ topicSuggestions: validatedTopics });
             toast.success("Topics generated successfully");
           }
-        } catch (e) {
+        } catch {
           setTopics(MOCK_TOPICS);
         }
       }
-    } catch (error) {
+    } catch {
       toast.error("Failed to generate topics");
     } finally {
       setLocalIsGenerating(false);

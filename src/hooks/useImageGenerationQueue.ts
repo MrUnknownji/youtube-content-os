@@ -98,8 +98,12 @@ export function useConcurrentImageGeneration() {
       }
     });
 
-    await Promise.allSettled(promises);
-    return results;
+    const settled = await Promise.all(promises);
+    return new Map(
+      settled
+        .filter((item): item is { id: string; response: AIGenerateResponse; success: true } => item.success && Boolean(item.response))
+        .map(({ id, response }) => [id, response]),
+    );
   }, [ai]);
 
   const isGenerating = useCallback((id: string) => {

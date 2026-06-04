@@ -18,6 +18,13 @@ import {
 import { toast } from "sonner";
 import { useProjectStore } from "@/state/projectStore";
 import { ImageViewer } from "@/components/ImageViewer";
+import type { StoryboardScene } from "@/types";
+
+const omitGeneratedImageUrl = (scene: StoryboardScene) => {
+  const exportableScene = { ...scene };
+  delete exportableScene.generatedImageUrl;
+  return exportableScene;
+};
 
 export function ProjectComplete() {
   const { currentProject } = useProjectStore();
@@ -110,10 +117,7 @@ export function ProjectComplete() {
       toast.error("No storyboard selected");
       return;
     }
-    const scenes = currentProject.selectedStoryboard.scenes.map((scene) => {
-      const { generatedImageUrl, ...rest } = scene;
-      return rest;
-    });
+    const scenes = currentProject.selectedStoryboard.scenes.map(omitGeneratedImageUrl);
     const blob = new Blob([JSON.stringify(scenes, null, 2)], {
       type: "application/json",
     });
@@ -215,10 +219,7 @@ export function ProjectComplete() {
       selectedStoryboard: currentProject.selectedStoryboard
         ? {
             ...currentProject.selectedStoryboard,
-            scenes: currentProject.selectedStoryboard.scenes.map((scene) => {
-              const { generatedImageUrl, ...rest } = scene;
-              return rest;
-            }),
+            scenes: currentProject.selectedStoryboard.scenes.map(omitGeneratedImageUrl),
           }
         : null,
       exportedAt: new Date().toISOString(),
