@@ -192,34 +192,40 @@ export function SettingsDialog() {
         <div className="space-y-6 py-4">
           <AppearanceSettings />
 
-          {/* AI Mode Toggle */}
-          <div className="flex items-center justify-between p-4 rounded-lg border border-border bg-card">
-            <div className="flex items-center gap-3">
-              {settings.useAI ? (
-                <div className="p-2 rounded-full bg-primary/20">
-                  <Sparkles className="h-5 w-5 text-primary" />
-                </div>
-              ) : (
-                <div className="p-2 rounded-full bg-muted">
-                  <Zap className="h-5 w-5 text-muted-foreground" />
-                </div>
-              )}
-              <div>
-                <p className="font-medium text-foreground">
-                  {settings.useAI ? "AI Mode" : "Template Mode"}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {settings.useAI
-                    ? `Using ${settings.geminiModel === "gemini-3.1-pro-preview" ? "Gemini 3.1 Pro" : "Gemini 3 Flash"} for generation`
-                    : "Using pre-built templates"}
-                </p>
-              </div>
-            </div>
-            <Switch
-              checked={settings.useAI}
-              onCheckedChange={handleToggleAI}
-              className="data-[state=checked]:bg-primary"
-            />
+          {/* Generation mode selector */}
+          <div
+            className="grid grid-cols-2 gap-1 rounded-xl border border-border bg-muted/50 p-1"
+            role="radiogroup"
+            aria-label="Generation mode"
+          >
+            <button
+              type="button"
+              role="radio"
+              aria-checked={!settings.useAI}
+              onClick={() => handleToggleAI(false)}
+              className={`flex min-h-12 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+                !settings.useAI
+                  ? "bg-background text-foreground shadow-sm ring-1 ring-border"
+                  : "text-muted-foreground hover:bg-background/50 hover:text-foreground"
+              }`}
+            >
+              <Zap className="h-4 w-4" />
+              <span>Template Mode</span>
+            </button>
+            <button
+              type="button"
+              role="radio"
+              aria-checked={settings.useAI}
+              onClick={() => handleToggleAI(true)}
+              className={`flex min-h-12 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+                settings.useAI
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:bg-background/50 hover:text-foreground"
+              }`}
+            >
+              <Sparkles className="h-4 w-4" />
+              <span>AI Mode</span>
+            </button>
           </div>
 
           {/* API Key & Model Input - Only shown when AI mode is enabled */}
