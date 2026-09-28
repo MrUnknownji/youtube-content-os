@@ -36,11 +36,22 @@ import {
 import { toast } from "sonner";
 import { useProjectStore } from "@/state/projectStore";
 import { AppearanceSettings } from "@/components/AppearanceSettings";
+import {
+  CONTENT_MODEL_OPTIONS,
+  DEFAULT_CONTENT_MODEL,
+  DEFAULT_IMAGE_MODEL,
+  getModelLabel,
+  IMAGE_MODEL_OPTIONS,
+  normalizeContentModel,
+  normalizeImageModel,
+} from "@/lib/ai-models";
 
 interface AISettings {
   useAI: boolean;
   geminiApiKey: string;
+  openaiApiKey: string;
   geminiApiType: "ai-studio" | "vertex-ai";
+  /** Legacy storage field name. It now stores the selected content model for either provider. */
   geminiModel: string;
   mongoUri: string;
   useImageGen: boolean;
@@ -58,15 +69,15 @@ export function getAISettings(): AISettings {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
       const parsed = JSON.parse(stored);
-      // Ensure new fields exist
       return {
         useAI: parsed.useAI ?? false,
         geminiApiKey: parsed.geminiApiKey ?? "",
+        openaiApiKey: parsed.openaiApiKey ?? "",
         geminiApiType: parsed.geminiApiType ?? "ai-studio",
-        geminiModel: parsed.geminiModel ?? "gemini-3-flash-preview",
+        geminiModel: normalizeContentModel(parsed.geminiModel),
         mongoUri: parsed.mongoUri ?? "",
         useImageGen: parsed.useImageGen ?? false,
-        imageModel: parsed.imageModel ?? "gpt-image-1.5",
+        imageModel: normalizeImageModel(parsed.imageModel),
         useCloudinary: parsed.useCloudinary ?? false,
         cloudinaryCloudName: parsed.cloudinaryCloudName ?? "",
         cloudinaryApiKey: parsed.cloudinaryApiKey ?? "",
@@ -79,11 +90,12 @@ export function getAISettings(): AISettings {
   return {
     useAI: false,
     geminiApiKey: "",
+    openaiApiKey: "",
     geminiApiType: "ai-studio",
-    geminiModel: "gemini-3-flash-preview",
+    geminiModel: DEFAULT_CONTENT_MODEL,
     mongoUri: "",
     useImageGen: false,
-    imageModel: "gpt-image-1.5",
+    imageModel: DEFAULT_IMAGE_MODEL,
     useCloudinary: false,
     cloudinaryCloudName: "",
     cloudinaryApiKey: "",
@@ -107,10 +119,15 @@ export function getGeminiApiKey(): string {
   return getAISettings().geminiApiKey;
 }
 
+export function getOpenAIApiKey(): string {
+  return getAISettings().openaiApiKey;
+}
+
 export function SettingsDialog() {
   const [open, setOpen] = useState(false);
   const [settings, setSettings] = useState<AISettings>(getAISettings());
   const [showKey, setShowKey] = useState(false);
+  const [showOpenAIKey, setShowOpenAIKey] = useState(false);
   const [showMongo, setShowMongo] = useState(false);
   const [showCloudinaryKey, setShowCloudinaryKey] = useState(false);
   const [showCloudinarySecret, setShowCloudinarySecret] = useState(false);
@@ -127,11 +144,10 @@ export function SettingsDialog() {
     saveAISettings(settings);
     toast.success(
       settings.useAI
-        ? "AI Mode enabled - Using Gemini"
+        ? `AI Mode enabled · ${getModelLabel(settings.geminiModel)}`
         : "Template Mode enabled",
     );
     setOpen(false);
-    // Dispatch event for components to react to the change
     window.dispatchEvent(
       new CustomEvent("ai-settings-changed", { detail: settings }),
     );
@@ -228,14 +244,39 @@ export function SettingsDialog() {
             </button>
           </div>
 
-          {/* API Key & Model Input - Only shown when AI mode is enabled */}
           {settings.useAI && (
             <div className="space-y-4 p-4 rounded-lg border border-primary/30 bg-primary/5">
-              {/* API Type Toggle */}
               <div className="space-y-2">
                 <Label className="font-sans text-foreground flex items-center gap-2">
+                  <Sparkles className="h-4 w-4" />
+                  Content Model
+                </Label>
+                <Select
+                  value={settings.geminiModel}
+                  onValueChange={(value) =>
+                    setSettings((prev) => ({ ...prev, geminiModel: value }))
+                  }
+                >
+                  <SelectTrigger className="w-full bg-input border-input">
+                    <SelectValue placeholder="Select content model" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CONTENT_MODEL_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label} · {option.provider === "openai" ? "OpenAI" : "Google"}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  The provider is selected automatically from the model you choose.
+                </p>
+              </div>
+
+              <div className="space-y-2 pt-2 border-t border-border/60">
+                <Label className="font-sans text-foreground flex items-center gap-2">
                   <ToggleLeft className="h-4 w-4" />
-                  API Source
+                  Gemini API Source
                 </Label>
                 <div className="flex rounded-md border border-input overflow-hidden">
                   <button
@@ -274,7 +315,7 @@ export function SettingsDialog() {
                 <p className="text-xs text-muted-foreground">
                   {settings.geminiApiType === "ai-studio"
                     ? "Standard API key from Google AI Studio (aistudio.google.com)"
-                    : "Vertex AI — uses ADC/service account on the server, or an express API key"}
+                    : "Vertex AI uses ADC/service account on the server, or an express API key"}
                 </p>
               </div>
 
@@ -282,7 +323,7 @@ export function SettingsDialog() {
                 <Label className="font-sans text-foreground flex items-center gap-2">
                   <Sparkles className="h-4 w-4" />
                   {settings.geminiApiType === "vertex-ai"
-                    ? "Vertex AI API Key (optional)"
+                    ? "Gemini / Vertex API Key (optional)"
                     : "Gemini API Key"}
                 </Label>
                 <div className="relative">
@@ -306,6 +347,7 @@ export function SettingsDialog() {
                     type="button"
                     onClick={() => setShowKey(!showKey)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    aria-label={showKey ? "Hide Gemini API key" : "Show Gemini API key"}
                   >
                     {showKey ? (
                       <EyeOff className="h-4 w-4" />
@@ -317,33 +359,44 @@ export function SettingsDialog() {
                 <p className="text-xs text-muted-foreground">
                   {settings.geminiApiType === "vertex-ai"
                     ? "Leave empty to rely on GOOGLE_APPLICATION_CREDENTIALS set on the server"
-                    : "Leave empty to use the server's configured API key from .env"}
+                    : "Leave empty to use the server's configured Gemini key"}
                 </p>
               </div>
 
               <div className="space-y-2">
                 <Label className="font-sans text-foreground flex items-center gap-2">
                   <Sparkles className="h-4 w-4" />
-                  Gemini Model
+                  OpenAI API Key
                 </Label>
-                <Select
-                  value={settings.geminiModel}
-                  onValueChange={(value) =>
-                    setSettings((prev) => ({ ...prev, geminiModel: value }))
-                  }
-                >
-                  <SelectTrigger className="w-full bg-input border-input">
-                    <SelectValue placeholder="Select Model" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="gemini-3-flash-preview">
-                      Gemini 3 Flash (Fast)
-                    </SelectItem>
-                    <SelectItem value="gemini-3.1-pro-preview">
-                      Gemini 3.1 Pro (Capable)
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="relative">
+                  <Input
+                    type={showOpenAIKey ? "text" : "password"}
+                    placeholder="sk-..."
+                    value={settings.openaiApiKey}
+                    onChange={(e) =>
+                      setSettings((prev) => ({
+                        ...prev,
+                        openaiApiKey: e.target.value,
+                      }))
+                    }
+                    className="bg-input border-input pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowOpenAIKey(!showOpenAIKey)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    aria-label={showOpenAIKey ? "Hide OpenAI API key" : "Show OpenAI API key"}
+                  >
+                    {showOpenAIKey ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Leave empty to use OPENAI_API_KEY configured on the server.
+                </p>
               </div>
             </div>
           )}
@@ -385,17 +438,19 @@ export function SettingsDialog() {
                       }
                     >
                       <SelectTrigger className="w-full bg-input border-input">
-                        <SelectValue placeholder="Select Model" />
+                        <SelectValue placeholder="Select image model" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="gpt-image-1.5">
-                          GPT Image 1.5 (OpenAI)
-                        </SelectItem>
-                        <SelectItem value="gemini-3.1-flash-image-preview">
-                          Gemini 3.1 Flash Image (Google)
-                        </SelectItem>
+                        {IMAGE_MODEL_OPTIONS.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label} · {option.provider === "openai" ? "OpenAI" : "Google"}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Uses the matching OpenAI or Gemini credential configured above.
+                    </p>
                   </div>
 
                   <div className="flex items-center justify-between pt-2 border-t border-border">
@@ -552,8 +607,8 @@ export function SettingsDialog() {
             </p>
             <p>
               {settings.useAI
-                ? `All generation will use Google Gemini via ${settings.geminiApiType === "vertex-ai" ? "Vertex AI" : "AI Studio"} for intelligent, context-aware content.`
-                : "Uses pre-built templates for quick content generation. Great for testing or when API is unavailable."}
+                ? `Content uses ${getModelLabel(settings.geminiModel)} and images use ${getModelLabel(settings.imageModel)}. The app routes each request to Google or OpenAI automatically.`
+                : "Uses pre-built templates for quick content generation. Great for testing or when APIs are unavailable."}
             </p>
           </div>
 
