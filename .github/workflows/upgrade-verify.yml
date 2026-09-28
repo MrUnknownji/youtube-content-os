@@ -26,7 +26,7 @@ jobs:
 
       - name: Upgrade root dependencies to latest compatible stable versions
         run: |
-          npx --yes npm-check-updates@latest -u --target latest --reject typescript,@types/node,react-day-picker
+          npx --yes npm-check-updates@latest -u --target latest --reject typescript,@types/node,react-day-picker,vite,@vitejs/plugin-react
           rm -f package-lock.json
           npm install
 
