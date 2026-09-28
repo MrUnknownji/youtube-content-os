@@ -1,10 +1,18 @@
-// AI Provider Service - Simplified for Gemini-only mode
+// AI Provider Service - provider-aware Gemini/OpenAI routing with template fallback
 import { MOCK_TITLES } from '@/data/mock-metadata';
+import {
+  DEFAULT_CONTENT_MODEL,
+  DEFAULT_IMAGE_MODEL,
+  getModelProvider,
+  normalizeContentModel,
+  normalizeImageModel,
+} from '@/lib/ai-models';
 import type { AIConfig, AIGenerateRequest, AIGenerateResponse, AIProvider } from '@/types';
 
 interface AISettings {
   useAI: boolean;
   geminiApiKey: string;
+  openaiApiKey?: string;
   geminiApiType?: 'ai-studio' | 'vertex-ai';
   geminiModel?: string;
   useImageGen?: boolean;
@@ -12,22 +20,32 @@ interface AISettings {
 }
 
 function getAISettings(): AISettings {
+  const defaults: AISettings = {
+    useAI: false,
+    geminiApiKey: '',
+    openaiApiKey: '',
+    geminiApiType: 'ai-studio',
+    geminiModel: DEFAULT_CONTENT_MODEL,
+    useImageGen: false,
+    imageModel: DEFAULT_IMAGE_MODEL,
+  };
+
   try {
     const stored = localStorage.getItem('yco-ai-settings');
     if (stored) {
-      return JSON.parse(stored);
+      const parsed = JSON.parse(stored) as Partial<AISettings>;
+      return {
+        ...defaults,
+        ...parsed,
+        geminiModel: normalizeContentModel(parsed.geminiModel),
+        imageModel: normalizeImageModel(parsed.imageModel),
+      };
     }
   } catch (e) {
     console.error('Failed to load AI settings:', e);
   }
-  return {
-    useAI: false,
-    geminiApiKey: '',
-    geminiApiType: 'ai-studio',
-    geminiModel: 'gemini-3-flash-preview',
-    useImageGen: false,
-    imageModel: 'gpt-image-1.5'
-  };
+
+  return defaults;
 }
 
 // Mock responses for when template mode is enabled
@@ -97,14 +115,18 @@ class AIGateway {
 
   constructor(config: Partial<AIConfig> = {}) {
     this.settings = getAISettings();
-    
-    // Determine provider based on AI toggle
-    const provider: AIProvider = this.settings.useAI ? 'gemini' : 'mock';
-    
+    const contentModel = normalizeContentModel(this.settings.geminiModel);
+    const provider: AIProvider = this.settings.useAI
+      ? getModelProvider(contentModel)
+      : 'mock';
+
     this.config = {
       provider,
-      apiKey: this.settings.geminiApiKey || undefined,
-      model: config.model || 'gemini-3-flash-preview',
+      apiKey:
+        provider === 'openai'
+          ? this.settings.openaiApiKey || undefined
+          : this.settings.geminiApiKey || undefined,
+      model: config.model || contentModel,
       temperature: config.temperature || 0.7,
       maxTokens: config.maxTokens || 2000,
       ...config
@@ -120,12 +142,9 @@ class AIGateway {
   }
 
   async generate(request: AIGenerateRequest): Promise<AIGenerateResponse> {
-    // Re-check settings in case they changed
     const currentSettings = getAISettings();
-    
-    // If AI mode is enabled, use Gemini via backend
+
     if (currentSettings.useAI) {
-      // Check for image generation disable override
       if (request.type === 'image' && !currentSettings.useImageGen) {
         return this.generateMock(request);
       }
@@ -141,17 +160,21 @@ class AIGateway {
         if (currentSettings.geminiApiType) {
           headers['x-gemini-api-type'] = currentSettings.geminiApiType;
         }
+        if (currentSettings.openaiApiKey) {
+          headers['x-openai-api-key'] = currentSettings.openaiApiKey;
+        }
 
         const isProd = import.meta.env.PROD;
         const apiUrl = import.meta.env.VITE_API_URL || (isProd ? '/api' : 'http://localhost:3001/api');
         const targetUrl = `${apiUrl}/ai/generate`;
 
         const model = request.type === 'image'
-          ? currentSettings.imageModel || 'gpt-image-1.5'
-          : currentSettings.geminiModel || 'gemini-3-flash-preview';
+          ? normalizeImageModel(currentSettings.imageModel)
+          : normalizeContentModel(currentSettings.geminiModel);
+        const provider = getModelProvider(model);
 
         const body = {
-          provider: 'gemini',
+          provider,
           prompt: request.prompt,
           type: request.type || 'text',
           images: request.images,
@@ -164,11 +187,11 @@ class AIGateway {
         console.group('%c[AI] generate()', 'color:#6366f1;font-weight:bold');
         console.log('URL:', targetUrl);
         console.log('Type:', request.type || 'text');
+        console.log('Provider:', provider);
         console.log('Model:', model);
-        console.log('API source:', currentSettings.geminiApiType || 'ai-studio');
-        console.log('API key:', currentSettings.geminiApiKey
-          ? `set (${currentSettings.geminiApiKey.slice(0, 8)}…)`
-          : 'not set — using server .env');
+        if (provider === 'gemini') {
+          console.log('Gemini API source:', currentSettings.geminiApiType || 'ai-studio');
+        }
         console.groupEnd();
 
         let response: Response;
@@ -210,7 +233,7 @@ class AIGateway {
             };
           }
           if (!result.success) {
-            console.error('%c[AI] ❌ Gemini API error from server:', 'color:red;font-weight:bold', result.message);
+            console.error('%c[AI] ❌ API error from server:', 'color:red;font-weight:bold', result.message);
           } else {
             console.warn('[AI] Server used fallback/template mode:', result.message);
           }
@@ -221,9 +244,9 @@ class AIGateway {
           console.error('Status:', response.status, response.statusText);
           console.error('Body:', errorBody);
           if (response.status === 401 || response.status === 403) {
-            console.error('Diagnosis: API key rejected. Verify your Gemini key in Settings.');
+            console.error(`Diagnosis: ${provider} API key rejected. Verify the matching key in Settings.`);
           } else if (response.status === 404) {
-            console.error('Diagnosis: Route not found — /api/ai/generate may not be registered on the server.');
+            console.error('Diagnosis: Route or model not found. Check the selected model and /api/ai/generate route.');
           } else if (response.status === 429) {
             console.error('Diagnosis: Rate limit / quota exceeded for this API key.');
           } else if (response.status === 500) {
@@ -238,15 +261,13 @@ class AIGateway {
       }
     }
 
-    // Fallback to mock/template mode
     return this.generateMock(request);
   }
 
   private generateMock(request: AIGenerateRequest): AIGenerateResponse {
     const prompt = request.prompt.toLowerCase();
-    
+
     if (request.type === 'image') {
-      // Return a placeholder SVG for image generation
       return {
         success: true,
         data: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgZmlsbD0iI2YxZjFmMSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzY2NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIFByZXZpZXc8L3RleHQ+PHRleHQgeD0iNTAlIiB5PSI2NSUiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmaWxsPSIjOTk5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5BZGQgQVBJIGtleSBpbiBTZXR0aW5ncyB0byBnZW5lcmF0ZTwvdGV4dD48L3N2Zz4=',
@@ -255,11 +276,9 @@ class AIGateway {
       };
     }
 
-    // Generate contextual mock content based on prompt
     let mockData: string;
-    
+
     if (prompt.includes('topic')) {
-      // Generate 10 topic suggestions
       const topics = MOCK_TOPIC_TITLES.map((title, i) => ({
         id: `topic-${i + 1}`,
         title,
@@ -363,13 +382,11 @@ Free guide mentioned in video: [link in description]
     };
   }
 
-  // Batch generation for efficiency
   async generateBatch(requests: AIGenerateRequest[]): Promise<AIGenerateResponse[]> {
     return Promise.all(requests.map(req => this.generate(req)));
   }
 }
 
-// Singleton instance
 let aiGateway: AIGateway | null = null;
 
 export function getAIGateway(config?: Partial<AIConfig>): AIGateway {
