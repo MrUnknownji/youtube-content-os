@@ -24,27 +24,29 @@ jobs:
             package-lock.json
             api/package-lock.json
 
-      - name: Upgrade root dependencies to latest stable versions
+      - name: Upgrade root dependencies to latest compatible stable versions
         run: |
-          npx --yes npm-check-updates@latest -u --target latest
+          npx --yes npm-check-updates@latest -u --target latest --reject typescript,@types/node,react-day-picker
+          rm -f package-lock.json
           npm install
 
       - name: Upgrade API dependencies to latest stable versions
         working-directory: api
         run: |
           npx --yes npm-check-updates@latest -u --target latest
+          rm -f package-lock.json
           npm install
 
       - name: Commit refreshed dependency manifests and locks
         run: |
           if git diff --quiet -- package.json package-lock.json api/package.json api/package-lock.json; then
-            echo "Dependencies are already at the latest stable versions."
+            echo "Dependencies are already at the latest compatible stable versions."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add package.json package-lock.json api/package.json api/package-lock.json
-          git commit -m "chore: upgrade dependencies to latest stable"
+          git commit -m "chore: upgrade dependencies to latest compatible stable"
           git push
 
       - name: Lint frontend
