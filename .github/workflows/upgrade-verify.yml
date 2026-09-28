@@ -37,9 +37,6 @@ jobs:
           rm -f package-lock.json
           npm install
 
-      - name: Refresh shadcn chart for Recharts 3
-        run: npx --yes shadcn@latest add chart --overwrite -y
-
       - name: Apply compatibility cleanups
         run: |
           python - <<'PY'
@@ -63,8 +60,8 @@ jobs:
           else
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add package.json package-lock.json api/package.json api/package-lock.json src/services/ai-provider.ts src/components/ui/chart.tsx src/sections/ShortsGenerator.tsx
-            git commit -m "chore: migrate frontend for latest compatible dependencies"
+            git add package.json package-lock.json api/package.json api/package-lock.json src/services/ai-provider.ts src/sections/ShortsGenerator.tsx
+            git commit -m "chore: refresh latest compatible dependency locks"
             git push
           fi
 
