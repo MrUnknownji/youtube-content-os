@@ -1,6 +1,7 @@
 // YouTube Content OS - Main Application
 import { lazy, Suspense, useEffect } from "react";
-import { Toaster, toast } from "sonner";
+import { toast } from "sonner";
+import { Toaster } from "@/components/ui/sonner";
 import { getAIGateway } from "@/services/ai-provider";
 import { getDatabaseGateway } from "@/services/db-adapter";
 import { getStorageGateway } from "@/services/storage-adapter";
@@ -177,7 +178,6 @@ function App() {
     <div className="min-h-[100dvh] bg-background flex overflow-x-hidden">
       <Toaster
         position="top-right"
-        richColors
         closeButton
         toastOptions={{
           style: {
