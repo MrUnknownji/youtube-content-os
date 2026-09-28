@@ -9,17 +9,17 @@
     "dev": "nodemon index.js"
   },
   "dependencies": {
-    "@google/genai": "^1.40.0",
+    "@google/genai": "^1.52.0",
     "cloudinary": "^1.41.3",
     "cors": "^2.8.6",
     "dotenv": "^16.6.1",
-    "express": "^4.22.1",
-    "mongoose": "^8.22.1",
+    "express": "^4.22.3",
+    "mongoose": "^8.24.4",
     "multer": "^1.4.5-lts.2"
   },
   "devDependencies": {
     "jest": "^29.7.0",
-    "nodemon": "^3.1.11",
-    "supertest": "^7.0.0"
+    "nodemon": "^3.1.14",
+    "supertest": "^7.3.0"
   }
 }
