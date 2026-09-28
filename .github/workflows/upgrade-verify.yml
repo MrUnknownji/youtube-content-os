@@ -37,17 +37,27 @@ jobs:
           rm -f package-lock.json
           npm install
 
-      - name: Commit refreshed dependency manifests and locks
+      - name: Apply ESLint 10 compatibility cleanup
         run: |
-          if git diff --quiet -- package.json package-lock.json api/package.json api/package-lock.json; then
-            echo "Dependencies are already at the latest compatible stable versions."
-            exit 0
+          python - <<'PY'
+          from pathlib import Path
+          path = Path("src/services/ai-provider.ts")
+          source = path.read_text()
+          source = source.replace("let mockData = '';", "let mockData: string;")
+          path.write_text(source)
+          PY
+
+      - name: Commit upgrade changes
+        run: |
+          if git diff --quiet -- package.json package-lock.json api/package.json api/package-lock.json src/services/ai-provider.ts; then
+            echo "Dependencies and compatibility cleanup are already current."
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add package.json package-lock.json api/package.json api/package-lock.json src/services/ai-provider.ts
+            git commit -m "chore: finish compatible dependency upgrade"
+            git push
           fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add package.json package-lock.json api/package.json api/package-lock.json
-          git commit -m "chore: upgrade dependencies to latest compatible stable"
-          git push
 
       - name: Lint frontend
         run: npm run lint
