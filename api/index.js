@@ -29,7 +29,8 @@ const corsOptions = {
 
 // Middleware
 app.use(cors(corsOptions));
-app.options("*", cors(corsOptions));
+// Express 5 / path-to-regexp requires named wildcards. The braces also match `/`.
+app.options("/{*splat}", cors(corsOptions));
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
