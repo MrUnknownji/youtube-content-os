@@ -256,7 +256,7 @@ class AIGateway {
     }
 
     // Generate contextual mock content based on prompt
-    let mockData = '';
+    let mockData: string;
     
     if (prompt.includes('topic')) {
       // Generate 10 topic suggestions
