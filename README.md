@@ -1,6 +1,6 @@
 # YouTube Content OS
 
-A personal-use web platform for planning, scripting, and producing YouTube content with defensive architecture - every external service has graceful fallbacks.
+A personal-use web platform for planning, scripting, and producing YouTube content with defensive architecture. External AI, database, and storage services have graceful fallbacks so the workflow remains usable when a provider is unavailable.
 
 ## Features
 
@@ -9,168 +9,164 @@ A personal-use web platform for planning, scripting, and producing YouTube conte
 - **Script Studio**: Generate facecam or faceless video scripts with editing capabilities
 - **Visual Storyboard**: Scene-by-scene planning with image generation prompts
 - **Metadata Suite**: Title suggestions, SEO descriptions, and thumbnail concepts
+- **Multi-provider AI**: Select current Gemini or OpenAI models for content and image generation
+- **Custom Appearance**: Light/dark/system mode, color presets, and shared shadcn radius controls
+
+## AI Models
+
+The model catalog is centralized in `src/lib/ai-models.ts`. Settings automatically migrate old/deprecated saved model IDs to current defaults.
+
+### Content generation
+
+**Google Gemini**
+- `gemini-3.8-flash` — default Gemini model
+- `gemini-3.5-flash`
+- `gemini-3.1-flash-lite`
+
+**OpenAI**
+- `gpt-6-astra`
+- `gpt-6-sol`
+- `gpt-6-luna`
+
+### Image generation
+
+**OpenAI**
+- `gpt-image-2.5-sunburst`
+- `gpt-image-2.5-flare` — default image model
+- `gpt-image-2`
+
+**Google Gemini**
+- `gemini-3.1-flash-image`
+- `gemini-3.1-flash-lite-image`
+- `gemini-3-pro-image`
+
+The selected model determines the provider automatically. Deprecated preview IDs and shut-down Gemini 2.0 models are intentionally not offered.
 
 ## Architecture
 
-### Circuit Breaker Pattern
-Every external service implements graceful degradation:
+### Graceful fallback pattern
 
-| Service | Primary | Fallback 1 | Fallback 2 |
-|---------|---------|------------|------------|
-| Database | MongoDB | LocalStorage + Export | JSON File Download |
-| Image Storage | Cloudinary | Base64 in localStorage | - |
-| AI Text | OpenAI | Anthropic/Gemini | Mock Mode (Templates) |
-| AI Images | DALL-E 3 | Prompt Display Only | Placeholder SVG |
+| Service | Primary choices | Fallback |
+|---------|-----------------|----------|
+| Database | MongoDB | LocalStorage + export |
+| Image Storage | Cloudinary | Base64/local browser storage |
+| AI Text | Gemini 3.8 / GPT-6 family | Template mode |
+| AI Images | GPT Image 2.5 / Gemini 3 image models | Placeholder/template fallback |
 
 ### Tech Stack
 
 **Frontend:**
 - React + TypeScript + Vite
-- Tailwind CSS with custom oklch theme
+- Tailwind CSS
 - shadcn/ui components
-- react-dropzone for file uploads
-- papaparse for CSV parsing
+- TanStack Query
+- Zustand
+- react-dropzone and PapaParse
 
-**Backend (Optional):**
+**Backend:**
 - Express.js + Node.js
 - MongoDB with Mongoose
 - Cloudinary SDK
+- Google GenAI SDK
+- OpenAI REST APIs
 
 ## Quick Start
 
-### Running without external APIs (Standalone Mode)
+### Standalone / Template Mode
 
-The app works completely offline with template-based content generation:
+The app can run without external AI credentials using built-in templates:
 
 ```bash
-# Install dependencies
 npm install
-
-# Start development server
 npm run dev
 ```
 
-The app will automatically detect missing API keys and switch to "Template Mode" with a banner notification.
+### Full backend
 
-### With AI Providers (Recommended)
+Install and run the API server:
 
-1. Copy environment variables:
 ```bash
-cp .env.example .env
+cd api
+npm install
+npm run dev
 ```
 
-2. Add your API keys to `.env`:
-```env
-VITE_OPENAI_API_KEY=sk-your-key-here
-# or
-VITE_ANTHROPIC_API_KEY=sk-ant-your-key-here
-# or
-VITE_GEMINI_API_KEY=your-gemini-key
-```
+Then run the frontend from the repository root:
 
-3. Start the app:
 ```bash
 npm run dev
 ```
 
-### With Full Backend
+By default the frontend uses `http://localhost:3001/api` during local development. Set `VITE_API_URL` to override it.
 
-1. Start MongoDB (local or Atlas)
-2. Configure Cloudinary (optional)
-3. Start the backend:
+## AI Configuration
+
+You can enter API credentials from **Settings → AI Mode**, or configure server-side environment variables.
+
+Copy the backend example file:
+
 ```bash
-cd server
-npm install
-npm start
-```
-4. Start the frontend with API URL:
-```bash
-VITE_API_URL=http://localhost:3001/api npm run dev
+cp api/.env.example api/.env
 ```
 
-## Environment Variables
+Current model defaults:
 
-### Frontend (.env)
 ```env
-# AI Providers (at least one recommended)
-VITE_OPENAI_API_KEY=sk-...
-VITE_ANTHROPIC_API_KEY=sk-ant-...
-VITE_GEMINI_API_KEY=...
-VITE_OLLAMA_URL=http://localhost:11434
-
-# Optional: Backend API
-VITE_API_URL=http://localhost:3001/api
-
-# Optional: Cloudinary
-VITE_CLOUDINARY_CLOUD_NAME=...
-VITE_CLOUDINARY_API_KEY=...
-VITE_CLOUDINARY_UPLOAD_PRESET=...
-```
-
-### Backend (server/.env)
-```env
-PORT=3001
-MONGODB_URI=mongodb+srv://...
-CLOUDINARY_CLOUD_NAME=...
-CLOUDINARY_API_KEY=...
-CLOUDINARY_API_SECRET=...
+# OpenAI
 OPENAI_API_KEY=sk-...
+OPENAI_MODEL=gpt-6-sol
+OPENAI_IMAGE_MODEL=gpt-image-2.5-flare
+
+# Gemini
+GEMINI_API_KEY=...
+GEMINI_MODEL=gemini-3.8-flash
+GEMINI_IMAGE_MODEL=gemini-3.1-flash-image
+GEMINI_API_TYPE=ai-studio
 ```
+
+For Vertex AI, set `GEMINI_API_TYPE=vertex-ai` and configure Vertex credentials/project settings as described in `api/.env.example`.
 
 ## Usage
 
 ### Workflow
 
-1. **Data Ingestion**: Upload your YouTube Analytics data (images, CSV, or manual entry)
-2. **Topic Intelligence**: Review 10 AI-generated topic suggestions, pin favorites, finalize one
-3. **Script Studio**: Choose facecam/faceless format, generate scripts, edit and finalize
-4. **Visual Storyboard**: Review scene breakdown with prompts, generate preview images
-5. **Metadata Suite**: Select title, edit description, choose thumbnail concept
-6. **Export**: Download complete project as JSON
+1. **Data Ingestion**: Upload YouTube Analytics data or enter it manually
+2. **Topic Intelligence**: Generate and review topic suggestions
+3. **Script Studio**: Generate, edit, and finalize scripts
+4. **Visual Storyboard**: Build scene breakdowns and image prompts
+5. **Metadata Suite**: Generate titles, descriptions, and thumbnail concepts
+6. **Shorts Extractor**: Create short-form candidates from the project
+7. **Project Complete**: Review and export the finished project
 
 ### Pin vs Finalize
 
-- **Pin (Bookmark)**: Saves item to persistent library for later use. Pinned items survive refresh.
-- **Finalize (Commit)**: Selects item as THE choice and advances workflow. Going back and changing will clear downstream selections.
+- **Pin** saves an item to the persistent library for later use.
+- **Finalize** selects the active choice and advances the workflow. Changing an upstream finalized item can clear dependent downstream selections.
 
 ## Theme
 
-The app uses a warm organic green color palette with oklch color space:
+The UI uses shadcn-style semantic CSS tokens and supports persisted appearance settings:
 
-- **Primary**: `oklch(0.5329 0.1451 143.8751)` - Forest green
-- **Background**: `oklch(0.9711 0.0074 80.7211)` - Warm off-white
-- **Foreground**: `oklch(0.2989 0.0390 29.5037)` - Dark brown
+- Light / Dark / System mode
+- Forest, Blue, Violet, Rose, and Orange color presets
+- Compact, Default, and Rounded radius presets
 
-Typography:
-- **UI**: Montserrat (sans-serif)
-- **Content**: Merriweather (serif)
-- **Code**: Source Code Pro (monospace)
+Because components consume semantic tokens such as `--primary`, `--accent`, `--popover`, and `--radius`, theme changes propagate across the application rather than being implemented as per-component color overrides.
 
 ## Project Structure
 
-```
+```text
+├── api/                    # Express backend and API routes
 ├── src/
-│   ├── sections/          # Main workflow modules
-│   │   ├── DataIngestion.tsx
-│   │   ├── TopicIntelligence.tsx
-│   │   ├── ScriptStudio.tsx
-│   │   ├── StoryboardEngine.tsx
-│   │   ├── MetadataSuite.tsx
-│   │   └── Navigation.tsx
-│   ├── services/          # Service adapters
-│   │   ├── ai-provider.ts
-│   │   ├── storage-adapter.ts
-│   │   └── db-adapter.ts
-│   ├── store/             # Global state
-│   │   └── index.ts
-│   ├── types/             # TypeScript interfaces
-│   │   └── index.ts
+│   ├── components/         # Shared UI and settings
+│   ├── hooks/              # Generation/query hooks
+│   ├── lib/                # Shared helpers and AI model catalog
+│   ├── sections/           # Main workflow modules
+│   ├── services/           # AI/storage/database adapters
+│   ├── state/              # Application state
+│   ├── types/              # TypeScript interfaces
 │   ├── App.tsx
 │   └── main.tsx
-├── server/                # Express backend (optional)
-│   ├── routes/
-│   ├── models/
-│   └── index.js
 └── public/
 ```
 
