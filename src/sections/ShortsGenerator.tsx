@@ -23,7 +23,7 @@ import {
   AlertTriangle,
   Trophy,
   Clock3,
-  Instagram,
+  Camera,
   Music2,
   ChevronDown,
   ChevronUp,
@@ -238,7 +238,7 @@ For each short, return as JSON:
   "hashtags": ["5-8 relevant hashtags including #shorts"],
   "bestPostingTime": "Best time to post",
   "crossPlatformAdaptation": {
-    "instagram": "Specific adaptation tips for Instagram Reels",
+    "instagram": "Specific adaptation tips for Camera Reels",
     "tiktok": "Specific adaptation tips for TikTok"
   }
 }
@@ -435,7 +435,7 @@ ${short.hashtags.join(" ")}
 ${short.bestPostingTime}
 
 ### Cross-Platform Tips
-- Instagram: ${short.crossPlatformAdaptation.instagram}
+- Camera: ${short.crossPlatformAdaptation.instagram}
 - TikTok: ${short.crossPlatformAdaptation.tiktok}
 
 ---`;
@@ -565,7 +565,7 @@ ${short.bestPostingTime}
             </h3>
             <p className="text-muted-foreground max-w-md mb-6">
               Finalize a script first, then extract viral-worthy shorts for
-              YouTube, Instagram, and TikTok.
+              YouTube, Camera, and TikTok.
             </p>
             <Button
               onClick={() => handleGenerateShorts()}
@@ -757,7 +757,7 @@ ${short.bestPostingTime}
                               </h4>
                               <div className="space-y-2">
                                 <div className="flex items-start gap-2 p-2 bg-muted/50 rounded-md">
-                                  <Instagram className="h-4 w-4 text-pink-500 mt-0.5" />
+                                  <Camera className="h-4 w-4 text-pink-500 mt-0.5" />
                                   <span className="text-sm text-muted-foreground">
                                     {short.crossPlatformAdaptation.instagram}
                                   </span>

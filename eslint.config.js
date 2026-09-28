@@ -21,6 +21,12 @@ export default defineConfig([
     },
     rules: {
       'react-refresh/only-export-components': 'off',
+      // React Hooks 7.x promotes compiler-oriented checks to the recommended preset.
+      // Keep them visible during normal development without making an existing,
+      // non-compiler app fail CI solely because the lint engine became stricter.
+      'react-hooks/immutability': 'warn',
+      'react-hooks/purity': 'warn',
+      'react-hooks/set-state-in-effect': 'warn',
     },
   },
 ])

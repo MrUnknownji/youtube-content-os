@@ -35,6 +35,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useProjectStore } from "@/state/projectStore";
+import { AppearanceSettings } from "@/components/AppearanceSettings";
 
 interface AISettings {
   useAI: boolean;
@@ -177,18 +178,20 @@ export function SettingsDialog() {
           <Settings className="h-4 w-4" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[450px] bg-background border-border max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[560px] bg-background border-border max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-sans text-foreground flex items-center gap-2">
             <Settings className="h-5 w-5" />
             Settings
           </DialogTitle>
           <DialogDescription className="text-muted-foreground">
-            Configure AI providers and application preferences.
+            Customize appearance, AI providers, and application preferences.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6 py-4">
+          <AppearanceSettings />
+
           {/* AI Mode Toggle */}
           <div className="flex items-center justify-between p-4 rounded-lg border border-border bg-card">
             <div className="flex items-center gap-3">
