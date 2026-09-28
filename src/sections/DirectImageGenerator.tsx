@@ -33,6 +33,12 @@ import { useImageGenerationQueue } from "@/hooks/useImageGenerationQueue";
 import { getAIGateway } from "@/services/ai-provider";
 import { getAISettings } from "@/components/SettingsDialog";
 import {
+  DEFAULT_IMAGE_MODEL,
+  getModelLabel,
+  getModelProvider,
+  normalizeContentModel,
+} from "@/lib/ai-models";
+import {
   Dialog,
   DialogContent,
   DialogTitle,
@@ -105,10 +111,8 @@ export function DirectImageGenerator() {
           (err as DOMException)?.name === "QuotaExceededError" &&
           entries.length > 1
         ) {
-          // Evict oldest entry and retry
           tryStore(entries.slice(0, -1));
         }
-        // If single entry still fails (shouldn't happen for metadata), silently skip
       }
     };
 
@@ -142,6 +146,8 @@ export function DirectImageGenerator() {
         import.meta.env.VITE_API_URL ||
         (isProd ? "/api" : "http://localhost:3001/api");
       const settings = getAISettings();
+      const contentModel = normalizeContentModel(settings.geminiModel);
+      const provider = getModelProvider(contentModel);
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
       };
@@ -149,13 +155,15 @@ export function DirectImageGenerator() {
         headers["x-gemini-api-key"] = settings.geminiApiKey;
       if (settings.geminiApiType)
         headers["x-gemini-api-type"] = settings.geminiApiType;
+      if (settings.openaiApiKey)
+        headers["x-openai-api-key"] = settings.openaiApiKey;
 
       const response = await fetch(`${apiUrl}/ai/generate`, {
         method: "POST",
         headers,
         body: JSON.stringify({
-          provider: "gemini",
-          model: "gemini-2.0-flash-001",
+          provider,
+          model: contentModel,
           type: "text",
           prompt: `You are an expert image prompt engineer. Enhance the following basic image prompt into a detailed, vivid, high-quality generation prompt. Keep the core idea but add: composition details, lighting, style, mood, color palette, and technical quality descriptors. Output only the enhanced prompt, nothing else.\n\nOriginal prompt: ${prompt.trim()}`,
           maxTokens: 300,
@@ -167,7 +175,7 @@ export function DirectImageGenerator() {
         const result = await response.json();
         if (result.success && result.data) {
           setPrompt(result.data.trim());
-          toast.success("Prompt enhanced with Gemini 2.0 Flash");
+          toast.success(`Prompt enhanced with ${getModelLabel(contentModel)}`);
         } else {
           toast.error("Enhancement failed");
         }
@@ -212,11 +220,10 @@ export function DirectImageGenerator() {
           prompt: prompt.trim(),
           imageUrl: response.data,
           createdAt: new Date(),
-          model: settings.imageModel || "gpt-image-1.5",
+          model: settings.imageModel || DEFAULT_IMAGE_MODEL,
           size,
         };
 
-        // Cache image data in memory (never write base64 to localStorage)
         imageDataCache.set(newImage.id, response.data);
 
         setGeneratedImages((prev) => {
@@ -424,7 +431,7 @@ export function DirectImageGenerator() {
                 disabled={isEnhancing || !isAIEnabled || !prompt.trim()}
                 variant="outline"
                 className="w-full sm:w-auto border-border"
-                title="Enhance prompt with Gemini 2.0 Flash"
+                title="Enhance prompt with your selected content model"
               >
                 {isEnhancing ? (
                   <>
@@ -479,7 +486,6 @@ export function DirectImageGenerator() {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
 
-                {/* Overlay Controls */}
                 <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                   <Button
                     size="icon"
@@ -499,7 +505,6 @@ export function DirectImageGenerator() {
                   </Button>
                 </div>
 
-                {/* Bottom Info */}
                 <div className="absolute bottom-0 left-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
