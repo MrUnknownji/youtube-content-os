@@ -2,6 +2,11 @@ const { GoogleGenAI } = require("@google/genai");
 const express = require("express");
 const router = express.Router();
 
+const DEFAULT_GEMINI_MODEL = "gemini-3.8-flash";
+const DEFAULT_OPENAI_MODEL = "gpt-6-sol";
+const DEFAULT_IMAGE_MODEL = "gpt-image-2.5-flare";
+const DEFAULT_GEMINI_IMAGE_MODEL = "gemini-3.1-flash-image";
+
 function createGeminiClient(req) {
   const apiKey = req.headers["x-gemini-api-key"] || process.env.GEMINI_API_KEY;
   const apiType =
@@ -11,18 +16,22 @@ function createGeminiClient(req) {
 
   if (apiType === "vertex-ai") {
     if (apiKey) {
-      // Vertex AI Express mode: API key only (starts with "AQ.")
-      // project/location must NOT be passed alongside apiKey
       return new GoogleGenAI({ apiKey, vertexai: true });
     }
-    // Vertex AI ADC / service-account mode: project + location, no apiKey
     const project = process.env.GOOGLE_CLOUD_PROJECT;
     const location = process.env.GOOGLE_CLOUD_LOCATION || "us-central1";
     return new GoogleGenAI({ vertexai: true, project, location });
   }
 
-  // AI Studio mode: standard API key
   return new GoogleGenAI({ apiKey });
+}
+
+function isOpenAIImageModel(model = "") {
+  return model.startsWith("gpt-image-");
+}
+
+function isGeminiImageModel(model = "") {
+  return model.startsWith("gemini-") && model.includes("-image");
 }
 
 // POST /api/ai/generate - Proxy AI generation requests
@@ -31,8 +40,9 @@ router.post("/generate", async (req, res) => {
     const {
       prompt,
       type,
-      provider = "openai",
+      provider = "gemini",
       model,
+      temperature = 0.7,
       maxTokens = 2000,
       format,
       images = [],
@@ -47,31 +57,26 @@ router.post("/generate", async (req, res) => {
       });
     }
 
-    // Handle Image Generation Requests
     if (type === "image") {
-      if (model.includes("gpt-image")) {
+      if (isOpenAIImageModel(model)) {
         return await generateOpenAIImage(req, res, { prompt, model });
-      } else if (
-        model.includes("gemini-3.1-flash-image") ||
-        model.includes("gemini-3-pro-image")
-      ) {
-        return await generateGeminiImage(req, res, { prompt, model });
-      } else {
-        return await generateOpenAIImage(req, res, {
-          prompt,
-          model: "gpt-image-1.5",
-        });
       }
+      if (isGeminiImageModel(model)) {
+        return await generateGeminiImage(req, res, { prompt, model });
+      }
+      return await generateOpenAIImage(req, res, {
+        prompt,
+        model: DEFAULT_IMAGE_MODEL,
+      });
     }
 
-    // Route to appropriate provider
     switch (provider) {
       case "openai":
         return await generateOpenAI(req, res, {
           prompt,
           type,
           model,
-          temperature, // Assuming this is defined in outer scope or passed in request
+          temperature,
           maxTokens,
           format,
         });
@@ -90,6 +95,7 @@ router.post("/generate", async (req, res) => {
           model,
           images,
           format,
+          temperature,
           maxTokens,
         });
       case "ollama":
@@ -115,32 +121,43 @@ async function generateOpenAI(req, res, options) {
     return generateMock(res, options);
   }
 
+  const modelName =
+    options.model || process.env.OPENAI_MODEL || DEFAULT_OPENAI_MODEL;
+
   try {
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    const response = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: options.model || "gpt-4o",
-        messages: [{ role: "user", content: options.prompt }],
-        temperature: options.temperature,
-        max_tokens: options.maxTokens,
+        model: modelName,
+        input: options.prompt,
+        max_output_tokens: options.maxTokens || 8192,
       }),
     });
 
     if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.status}`);
+      const body = await response.text().catch(() => "");
+      throw new Error(`OpenAI API error: ${response.status}${body ? ` - ${body}` : ""}`);
     }
 
     const data = await response.json();
+    const outputText =
+      data.output_text ||
+      (data.output || [])
+        .filter((item) => item.type === "message")
+        .flatMap((item) => item.content || [])
+        .filter((part) => part.type === "output_text")
+        .map((part) => part.text || "")
+        .join("");
 
-    res.json({
+    return res.json({
       success: true,
-      data: data.choices[0]?.message?.content || "",
+      data: outputText || "",
       fallbackUsed: false,
-      message: "Generated successfully with OpenAI",
+      message: `Generated successfully with ${modelName}`,
     });
   } catch (error) {
     console.warn(
@@ -158,6 +175,9 @@ async function generateOpenAIImage(req, res, options) {
     return generateMock(res, { ...options, type: "image" });
   }
 
+  const modelName =
+    options.model || process.env.OPENAI_IMAGE_MODEL || DEFAULT_IMAGE_MODEL;
+
   try {
     const response = await fetch(
       "https://api.openai.com/v1/images/generations",
@@ -168,25 +188,38 @@ async function generateOpenAIImage(req, res, options) {
           Authorization: `Bearer ${apiKey}`,
         },
         body: JSON.stringify({
-          model: options.model || "gpt-image-1.5",
+          model: modelName,
           prompt: options.prompt,
           n: 1,
           size: "1024x1024",
+          quality: "auto",
+          output_format: "png",
         }),
       },
     );
 
     if (!response.ok) {
-      throw new Error(`OpenAI Image API error: ${response.status}`);
+      const body = await response.text().catch(() => "");
+      throw new Error(
+        `OpenAI Image API error: ${response.status}${body ? ` - ${body}` : ""}`,
+      );
     }
 
     const data = await response.json();
+    const result = data.data?.[0];
+    const imageUrl = result?.b64_json
+      ? `data:image/png;base64,${result.b64_json}`
+      : result?.url || "";
 
-    res.json({
+    if (!imageUrl) {
+      throw new Error("OpenAI image response did not contain image data");
+    }
+
+    return res.json({
       success: true,
-      data: data.data[0]?.url || "",
+      data: imageUrl,
       fallbackUsed: false,
-      message: `Image generated with ${options.model}`,
+      message: `Image generated with ${modelName}`,
     });
   } catch (error) {
     console.warn(
@@ -212,10 +245,14 @@ async function generateGeminiImage(req, res, options) {
   }
 
   try {
-    const modelName = options.model || "gemini-3.1-flash-image-preview";
+    const modelName =
+      options.model ||
+      process.env.GEMINI_IMAGE_MODEL ||
+      DEFAULT_GEMINI_IMAGE_MODEL;
     console.log(`Generating image with ${modelName} (${apiType})...`);
 
     const ai = createGeminiClient(req);
+    const imageSize = modelName.includes("flash-lite-image") ? "1K" : "2K";
 
     const response = await ai.models.generateContent({
       model: modelName,
@@ -223,7 +260,7 @@ async function generateGeminiImage(req, res, options) {
       config: {
         imageConfig: {
           aspectRatio: "16:9",
-          imageSize: "2K",
+          imageSize,
         },
       },
     });
@@ -269,7 +306,7 @@ async function generateAnthropic(req, res, options) {
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: options.model || "claude-3-sonnet-20240229",
+        model: options.model || process.env.ANTHROPIC_MODEL,
         max_tokens: options.maxTokens || 2000,
         messages: [{ role: "user", content: options.prompt }],
       }),
@@ -281,7 +318,7 @@ async function generateAnthropic(req, res, options) {
 
     const data = await response.json();
 
-    res.json({
+    return res.json({
       success: true,
       data: data.content[0]?.text || "",
       fallbackUsed: false,
@@ -311,7 +348,7 @@ async function generateGemini(req, res, options) {
   }
 
   const modelName =
-    options.model || process.env.GEMINI_MODEL || "gemini-3-flash-preview";
+    options.model || process.env.GEMINI_MODEL || DEFAULT_GEMINI_MODEL;
 
   try {
     console.log(
@@ -319,7 +356,6 @@ async function generateGemini(req, res, options) {
     );
 
     const ai = createGeminiClient(req);
-
     const parts = [{ text: options.prompt }];
 
     if (
@@ -357,14 +393,14 @@ async function generateGemini(req, res, options) {
 
     const text = response.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
-    res.json({
+    return res.json({
       success: true,
       data: text,
       fallbackUsed: false,
-      message: `Generated successfully with Gemini [${apiType}]`,
+      message: `Generated successfully with ${modelName} [${apiType}]`,
     });
   } catch (error) {
-    const apiType =
+    const currentApiType =
       req.headers["x-gemini-api-type"] ||
       process.env.GEMINI_API_TYPE ||
       "ai-studio";
@@ -384,13 +420,13 @@ async function generateGemini(req, res, options) {
       diagnosis =
         "[Vertex AI] SDK config error: apiKey and project/location cannot be used together.";
     } else if (
-      errMsg.includes("not found") &&
-      modelName !== "gemini-3-flash-preview"
+      errMsg.toLowerCase().includes("not found") &&
+      modelName !== DEFAULT_GEMINI_MODEL
     ) {
-      console.log("Retrying with gemini-3-flash-preview...");
+      console.log(`Retrying with ${DEFAULT_GEMINI_MODEL}...`);
       return generateGemini(req, res, {
         ...options,
-        model: "gemini-3-flash-preview",
+        model: DEFAULT_GEMINI_MODEL,
       });
     } else if (
       errMsg.includes("429") ||
@@ -403,20 +439,25 @@ async function generateGemini(req, res, options) {
       success: false,
       data: null,
       fallbackUsed: true,
-      message: `Gemini [${apiType}] error: ${diagnosis}`,
+      message: `Gemini [${currentApiType}] error: ${diagnosis}`,
     });
   }
 }
 
 async function generateOllama(req, res, options) {
   const ollamaUrl = process.env.OLLAMA_URL || "http://localhost:11434";
+  const modelName = options.model || process.env.OLLAMA_MODEL;
+
+  if (!modelName) {
+    return generateMock(res, options);
+  }
 
   try {
     const response = await fetch(`${ollamaUrl}/api/generate`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: options.model || "llama2",
+        model: modelName,
         prompt: options.prompt,
         stream: false,
       }),
@@ -428,7 +469,7 @@ async function generateOllama(req, res, options) {
 
     const data = await response.json();
 
-    res.json({
+    return res.json({
       success: true,
       data: data.response || "",
       fallbackUsed: false,
@@ -445,8 +486,6 @@ async function generateOllama(req, res, options) {
 
 function generateMock(res, options) {
   const prompt = options.prompt.toLowerCase();
-
-  // Generate contextual mock responses
   let mockData = "";
 
   if (options.type === "image") {
@@ -591,7 +630,7 @@ If you want to try this yourself, I've put together a free guide in the descript
       "Generated content would appear here. Configure an AI provider in settings for custom generations.";
   }
 
-  res.json({
+  return res.json({
     success: true,
     data: mockData,
     fallbackUsed: true,
