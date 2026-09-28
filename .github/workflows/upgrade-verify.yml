@@ -35,16 +35,6 @@ jobs:
           npx --yes npm-check-updates@latest -u --target minor
           npm install
 
-      - name: Lint frontend
-        run: npm run lint
-
-      - name: Build frontend
-        run: npm run build
-
-      - name: Test API
-        working-directory: api
-        run: npm test -- --runInBand
-
       - name: Commit refreshed dependency manifests and locks
         run: |
           if git diff --quiet -- package.json package-lock.json api/package.json api/package-lock.json; then
@@ -56,3 +46,13 @@ jobs:
           git add package.json package-lock.json api/package.json api/package-lock.json
           git commit -m "chore: refresh compatible dependencies"
           git push
+
+      - name: Lint frontend
+        run: npm run lint
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Test API
+        working-directory: api
+        run: npm test -- --runInBand
